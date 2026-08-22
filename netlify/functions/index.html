@@ -1,0 +1,1406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ScamGuard — Check Websites for Scam &amp; Security Risks</title>
+<meta name="description" content="Analyze websites for scam warning signs, security risks, suspicious domains, and reputation signals before you buy or share information.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3E%3Cpath d='M15 2L26 6.5V14.5C26 21.5 21.2 26.8 15 28.5C8.8 26.8 4 21.5 4 14.5V6.5L15 2Z' fill='%23080B10' stroke='%234CD3FF' stroke-width='1.6'/%3E%3Cpath d='M10.5 15L13.5 18L20 11' stroke='%234CD3FF' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================= TOKENS ============================= */
+:root{
+  --bg-void:#080B10;
+  --bg-surface:#0D1420;
+  --bg-elevated:#131C2B;
+  --bg-elevated-2:#182236;
+  --border:#1E293B;
+  --border-soft:#161F2E;
+  --text-primary:#EAF0F7;
+  --text-secondary:#9AA7BC;
+  --text-muted:#5E6B82;
+  --accent-cyan:#4CD3FF;
+  --accent-blue:#4C7CFA;
+  --accent-cyan-dim:rgba(76,211,255,.10);
+  --accent-cyan-line:rgba(76,211,255,.28);
+  --risk-vlow:#2ED88B;
+  --risk-low:#A3D65C;
+  --risk-mid:#F5B942;
+  --risk-high:#FF8A5B;
+  --risk-vhigh:#FF4D4D;
+  --radius-sm:10px;
+  --radius-md:16px;
+  --radius-lg:22px;
+  --shadow-card:0 1px 0 rgba(255,255,255,.03) inset, 0 20px 40px -24px rgba(0,0,0,.6);
+  --font-display:'Space Grotesk',system-ui,sans-serif;
+  --font-body:'Inter',system-ui,sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0;
+  background:var(--bg-void);
+  color:var(--text-primary);
+  font-family:var(--font-body);
+  -webkit-font-smoothing:antialiased;
+  line-height:1.5;
+  overflow-x:hidden;
+}
+body::before{
+  content:"";
+  position:fixed; inset:0;
+  background:
+    radial-gradient(900px 500px at 15% -10%, rgba(76,211,255,.08), transparent 60%),
+    radial-gradient(700px 500px at 100% 10%, rgba(76,124,250,.08), transparent 55%);
+  pointer-events:none;
+  z-index:0;
+}
+h1,h2,h3,h4{font-family:var(--font-display); margin:0; font-weight:600; letter-spacing:-.01em;}
+p{margin:0; color:var(--text-secondary);}
+a{color:inherit; text-decoration:none;}
+button{font-family:var(--font-body); cursor:pointer;}
+::selection{background:var(--accent-cyan-dim); color:var(--accent-cyan);}
+:focus-visible{outline:2px solid var(--accent-cyan); outline-offset:2px; border-radius:6px;}
+.mono{font-family:var(--font-mono);}
+.container{max-width:1160px; margin:0 auto; padding:0 24px;}
+.hidden{display:none !important;}
+img,svg{display:block;}
+
+/* ============================= NAVBAR ============================= */
+.navbar{
+  position:sticky; top:0; z-index:100;
+  background:rgba(8,11,16,.78);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border-soft);
+}
+.nav-inner{
+  max-width:1160px; margin:0 auto; padding:0 24px;
+  height:68px; display:flex; align-items:center; justify-content:space-between;
+}
+.brand{display:flex; align-items:center; gap:10px; font-family:var(--font-display); font-weight:700; font-size:19px; letter-spacing:-.01em;}
+.brand-mark{width:30px; height:30px; flex:none;}
+.nav-links{display:flex; align-items:center; gap:30px; list-style:none; margin:0; padding:0;}
+.nav-links a{font-size:14.5px; color:var(--text-secondary); font-weight:500; transition:color .15s;}
+.nav-links a:hover, .nav-links a.active{color:var(--text-primary);}
+.nav-right{display:flex; align-items:center; gap:14px;}
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  border-radius:999px; border:1px solid transparent; padding:10px 20px;
+  font-size:14px; font-weight:600; transition:transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s;
+  white-space:nowrap;
+}
+.btn:active{transform:scale(.98);}
+.btn-primary{background:linear-gradient(180deg,#5AD9FF,#3FB8ED); color:#04121A; box-shadow:0 8px 20px -8px rgba(76,211,255,.55);}
+.btn-primary:hover{box-shadow:0 10px 26px -8px rgba(76,211,255,.75);}
+.btn-ghost{background:transparent; border-color:var(--border); color:var(--text-primary);}
+.btn-ghost:hover{border-color:var(--accent-cyan-line); background:var(--accent-cyan-dim);}
+.btn-sm{padding:8px 15px; font-size:13px;}
+.btn-block{width:100%;}
+.hamburger{display:none; background:none; border:none; padding:8px; color:var(--text-primary);}
+.mobile-menu{display:none; flex-direction:column; gap:2px; padding:10px 24px 20px; border-bottom:1px solid var(--border-soft); background:var(--bg-void);}
+.mobile-menu.open{display:flex;}
+.mobile-menu a, .mobile-menu button{padding:12px 4px; font-size:15px; color:var(--text-secondary); border-bottom:1px solid var(--border-soft); text-align:left; background:none; border-left:none;border-right:none;border-top:none;}
+.mobile-menu a:last-of-type{border-bottom:none;}
+
+/* ============================= LAYOUT / SECTIONS ============================= */
+main{position:relative; z-index:1;}
+.section{padding:88px 0;}
+.section-tight{padding:56px 0;}
+.eyebrow{
+  display:inline-flex; align-items:center; gap:8px; font-family:var(--font-mono); font-size:12px;
+  color:var(--accent-cyan); background:var(--accent-cyan-dim); border:1px solid var(--accent-cyan-line);
+  padding:6px 12px; border-radius:999px; text-transform:uppercase; letter-spacing:.08em; margin-bottom:18px;
+}
+.section-head{max-width:640px; margin:0 0 44px;}
+.section-head h2{font-size:32px; margin-bottom:12px;}
+.section-head p{font-size:16px;}
+
+/* ============================= HERO ============================= */
+.hero{padding:64px 0 40px; position:relative;}
+.hero-grid{display:grid; grid-template-columns:1.05fr .95fr; gap:56px; align-items:center;}
+.hero h1{font-size:56px; line-height:1.04; letter-spacing:-.02em; margin-bottom:18px;}
+.hero h1 .accent{background:linear-gradient(90deg,#6BE3FF,#4C7CFA); -webkit-background-clip:text; background-clip:text; color:transparent;}
+.hero-sub{font-size:17px; max-width:480px; margin-bottom:34px;}
+
+.scanner-card{
+  background:linear-gradient(180deg, var(--bg-elevated), var(--bg-surface));
+  border:1px solid var(--border); border-radius:var(--radius-lg);
+  padding:22px; box-shadow:var(--shadow-card);
+}
+.scanner-label{font-family:var(--font-mono); font-size:11.5px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.09em; margin-bottom:10px; display:block;}
+.scanner-row{display:flex; gap:10px;}
+.scanner-input{
+  flex:1; background:var(--bg-void); border:1px solid var(--border); border-radius:var(--radius-sm);
+  padding:15px 16px; color:var(--text-primary); font-size:15px; font-family:var(--font-mono);
+}
+.scanner-input::placeholder{color:var(--text-muted); font-family:var(--font-body);}
+.scanner-input:focus{border-color:var(--accent-cyan); outline:none; box-shadow:0 0 0 3px var(--accent-cyan-dim);}
+.scan-btn{padding:15px 22px; border-radius:var(--radius-sm); font-size:14.5px;}
+.scan-error{color:var(--risk-vhigh); font-size:13px; margin-top:10px; display:none; font-family:var(--font-mono);}
+.scan-note{font-size:12.5px; color:var(--text-muted); margin-top:14px; line-height:1.5;}
+.hero-chips{display:flex; gap:8px; flex-wrap:wrap; margin-top:16px;}
+.chip{font-family:var(--font-mono); font-size:11.5px; color:var(--text-muted); border:1px solid var(--border); padding:5px 10px; border-radius:999px; cursor:pointer; background:transparent; transition:.15s;}
+.chip:hover{border-color:var(--accent-cyan-line); color:var(--accent-cyan);}
+
+/* Signature: radar/signal visual */
+.radar-wrap{display:flex; align-items:center; justify-content:center; position:relative;}
+.radar{width:100%; max-width:420px; aspect-ratio:1;}
+.radar-ring{fill:none; stroke:var(--border); stroke-width:1;}
+.radar-sweep-group{transform-origin:210px 210px; animation:spin 6s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.radar-blip{fill:var(--accent-cyan); filter:drop-shadow(0 0 6px rgba(76,211,255,.9));}
+.radar-blip-pulse{animation:pulseBlip 2.4s ease-in-out infinite;}
+@keyframes pulseBlip{0%,100%{opacity:.55; r:3;} 50%{opacity:1; r:4.5;}}
+.radar-shield{stroke:var(--accent-cyan); stroke-width:1.4; fill:rgba(76,211,255,.04);}
+.radar-label{font-family:var(--font-mono); font-size:9.5px; fill:var(--text-muted); letter-spacing:.05em;}
+
+@media (prefers-reduced-motion: reduce){
+  .radar-sweep-group{animation:none;}
+  .radar-blip-pulse{animation:none;}
+  *{animation-duration:.001ms !important; transition-duration:.001ms !important;}
+}
+
+/* ============================= CARDS / GRIDS ============================= */
+.grid-6{display:grid; grid-template-columns:repeat(3,1fr); gap:16px;}
+.check-card{
+  background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius-md);
+  padding:22px; transition:border-color .18s, transform .18s;
+}
+.check-card:hover{border-color:var(--accent-cyan-line); transform:translateY(-2px);}
+.check-icon{width:38px; height:38px; border-radius:10px; background:var(--accent-cyan-dim); display:flex; align-items:center; justify-content:center; margin-bottom:14px; color:var(--accent-cyan);}
+.check-card h4{font-size:15.5px; margin-bottom:6px;}
+.check-card p{font-size:13.5px; line-height:1.5;}
+
+.steps-4{display:grid; grid-template-columns:repeat(4,1fr); gap:16px; position:relative;}
+.step-card{background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:24px 20px;}
+.step-num{font-family:var(--font-mono); color:var(--accent-cyan); font-size:12px; margin-bottom:14px; display:block;}
+.step-card h4{font-size:16px; margin-bottom:8px;}
+.step-card p{font-size:13.5px;}
+
+/* ============================= SCANNING PAGE ============================= */
+.scan-progress-wrap{max-width:560px; margin:60px auto; text-align:center;}
+.scan-progress-wrap h2{font-size:24px; margin-bottom:6px;}
+.scan-target{font-family:var(--font-mono); color:var(--accent-cyan); font-size:15px; margin-bottom:40px; display:block;}
+.scan-ring-outer{width:120px; height:120px; margin:0 auto 40px; position:relative;}
+.scan-steps{text-align:left; display:flex; flex-direction:column; gap:2px; background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:8px;}
+.scan-step{display:flex; align-items:center; gap:12px; padding:13px 16px; border-radius:10px; opacity:.35; transition:opacity .3s;}
+.scan-step.active{opacity:1; background:var(--bg-elevated);}
+.scan-step.done{opacity:.75;}
+.scan-step-icon{width:20px; height:20px; flex:none; border-radius:50%; border:1.5px solid var(--border); display:flex; align-items:center; justify-content:center;}
+.scan-step.active .scan-step-icon{border-color:var(--accent-cyan);}
+.scan-step.done .scan-step-icon{border-color:var(--risk-vlow); background:var(--risk-vlow);}
+.scan-step-text{font-size:14px; color:var(--text-secondary);}
+.scan-step.active .scan-step-text, .scan-step.done .scan-step-text{color:var(--text-primary);}
+.spinner{width:11px; height:11px; border-radius:50%; border:2px solid var(--border); border-top-color:var(--accent-cyan); animation:sp .7s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg);}}
+
+/* ============================= RESULTS ============================= */
+.results-head{display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:16px; margin-bottom:28px;}
+.results-domain{font-family:var(--font-mono); font-size:22px; color:var(--text-primary);}
+.results-meta{font-size:12.5px; color:var(--text-muted); margin-top:4px;}
+.card{background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:26px; margin-bottom:18px;}
+.card-title{font-size:13px; text-transform:uppercase; letter-spacing:.07em; color:var(--text-muted); font-family:var(--font-mono); margin-bottom:18px;}
+
+.risk-card{display:grid; grid-template-columns:220px 1fr; gap:34px; align-items:center;}
+.gauge-wrap{position:relative; width:200px; height:200px; margin:0 auto;}
+.gauge-center{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+.gauge-score{font-family:var(--font-display); font-size:44px; font-weight:700; line-height:1;}
+.gauge-max{font-size:12px; color:var(--text-muted); font-family:var(--font-mono);}
+.risk-badge{display:inline-flex; align-items:center; gap:8px; padding:7px 14px; border-radius:999px; font-size:13px; font-weight:600; margin-bottom:14px;}
+.confidence-note{font-size:12.5px; color:var(--text-muted); margin-top:14px; line-height:1.6; border-top:1px solid var(--border-soft); padding-top:14px;}
+
+.explain-text{font-size:15px; color:var(--text-secondary); line-height:1.7;}
+
+.signal-list{display:flex; flex-direction:column; gap:2px;}
+.signal-item{display:flex; gap:14px; padding:16px 4px; border-bottom:1px solid var(--border-soft);}
+.signal-item:last-child{border-bottom:none;}
+.signal-icon{width:34px; height:34px; border-radius:9px; flex:none; display:flex; align-items:center; justify-content:center;}
+.signal-body h4{font-size:14.5px; margin-bottom:4px; display:flex; align-items:center; gap:9px; flex-wrap:wrap;}
+.signal-sev{font-family:var(--font-mono); font-size:10.5px; padding:2px 8px; border-radius:5px; font-weight:600; letter-spacing:.03em;}
+.signal-body p{font-size:13.5px; line-height:1.55;}
+.signal-evidence{font-family:var(--font-mono); font-size:11.5px; color:var(--text-muted); margin-top:6px;}
+.empty-state{padding:20px 4px; font-size:13.5px; color:var(--text-muted);}
+
+.tech-toggle{display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none;}
+.tech-body{display:none; margin-top:18px; border-top:1px solid var(--border-soft); padding-top:18px;}
+.tech-body.open{display:block;}
+.tech-row{display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--border-soft); font-size:13px;}
+.tech-row:last-child{border-bottom:none;}
+.tech-key{color:var(--text-muted); font-family:var(--font-mono);}
+.tech-val{font-family:var(--font-mono); color:var(--text-primary); text-align:right;}
+.tech-val.unavailable{color:var(--text-muted); font-style:italic;}
+
+.advice-box{border-radius:var(--radius-md); padding:20px; border:1px solid var(--border); background:var(--bg-elevated);}
+.disclaimer{font-size:12.5px; color:var(--text-muted); line-height:1.7; border-top:1px dashed var(--border); padding-top:16px; margin-top:8px;}
+
+/* ============================= PRICING ============================= */
+.pricing-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:20px;}
+.price-card{background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:30px 26px; position:relative; display:flex; flex-direction:column;}
+.price-card.popular{border-color:var(--accent-cyan-line); background:linear-gradient(180deg, rgba(76,211,255,.05), var(--bg-surface));}
+.popular-tag{position:absolute; top:-12px; left:26px; background:var(--accent-cyan); color:#04121A; font-size:11px; font-weight:700; padding:4px 12px; border-radius:999px; font-family:var(--font-mono);}
+.price-plan{font-family:var(--font-mono); font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--text-muted); margin-bottom:10px;}
+.price-amount{font-family:var(--font-display); font-size:38px; margin-bottom:4px;}
+.price-amount span{font-size:14px; color:var(--text-muted); font-family:var(--font-body);}
+.price-feats{list-style:none; margin:22px 0 26px; padding:0; display:flex; flex-direction:column; gap:11px; flex:1;}
+.price-feats li{font-size:13.5px; color:var(--text-secondary); display:flex; gap:9px; align-items:flex-start;}
+.price-feats li svg{flex:none; margin-top:2px;}
+.price-feats li.future{color:var(--text-muted);}
+.future-tag{font-family:var(--font-mono); font-size:9.5px; color:var(--text-muted); border:1px solid var(--border); padding:1px 6px; border-radius:4px; margin-left:6px;}
+
+/* ============================= THREATS / LIBRARY ============================= */
+.threat-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:16px;}
+.threat-card{background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:22px; cursor:pointer; transition:.18s;}
+.threat-card:hover{border-color:var(--accent-cyan-line);}
+.threat-card h4{font-size:16px; margin-bottom:8px;}
+.threat-card p{font-size:13.5px;}
+.threat-detail{display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--border-soft);}
+.threat-detail.open{display:block;}
+.threat-detail h5{font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--accent-cyan); font-family:var(--font-mono); margin:12px 0 6px;}
+.threat-detail h5:first-child{margin-top:0;}
+.threat-detail p{font-size:13px; line-height:1.6;}
+
+/* ============================= ABOUT ============================= */
+.about-copy{max-width:680px; font-size:16px; line-height:1.8; color:var(--text-secondary);}
+.about-copy p{margin-bottom:18px; font-size:inherit; color:inherit;}
+.about-copy strong{color:var(--text-primary);}
+
+/* ============================= HISTORY ============================= */
+.history-item{display:flex; align-items:center; justify-content:space-between; padding:14px 4px; border-bottom:1px solid var(--border-soft); cursor:pointer;}
+.history-item:hover{background:var(--bg-elevated);}
+.history-item:last-child{border-bottom:none;}
+.history-left{display:flex; align-items:center; gap:12px;}
+.history-dot{width:9px; height:9px; border-radius:50%; flex:none;}
+.history-domain{font-family:var(--font-mono); font-size:13.5px;}
+.history-date{font-size:11.5px; color:var(--text-muted); margin-top:2px;}
+.history-score{font-family:var(--font-mono); font-weight:700; font-size:14px;}
+.history-del{background:none; border:none; color:var(--text-muted); padding:6px; border-radius:6px;}
+.history-del:hover{color:var(--risk-vhigh); background:rgba(255,77,77,.08);}
+
+/* ============================= FOOTER ============================= */
+footer{border-top:1px solid var(--border-soft); padding:56px 0 32px; margin-top:40px;}
+.footer-grid{display:grid; grid-template-columns:1.4fr repeat(4,1fr); gap:32px; margin-bottom:40px;}
+.footer-col h5{font-family:var(--font-mono); font-size:12px; text-transform:uppercase; letter-spacing:.07em; color:var(--text-muted); margin-bottom:14px;}
+.footer-col a{display:block; font-size:13.5px; color:var(--text-secondary); margin-bottom:10px;}
+.footer-col a:hover{color:var(--accent-cyan);}
+.footer-disclaimer{font-size:12.5px; color:var(--text-muted); border-top:1px solid var(--border-soft); padding-top:24px; line-height:1.7;}
+.footer-bottom{display:flex; justify-content:space-between; margin-top:20px; font-size:12px; color:var(--text-muted); flex-wrap:wrap; gap:10px;}
+
+/* ============================= TOAST ============================= */
+.toast{position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--bg-elevated-2); border:1px solid var(--border); padding:13px 20px; border-radius:12px; font-size:13.5px; opacity:0; pointer-events:none; transition:.25s; z-index:300; box-shadow:0 10px 30px rgba(0,0,0,.5);}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+/* ============================= AUTH MODAL ============================= */
+.modal-overlay{position:fixed; inset:0; background:rgba(4,6,10,.7); backdrop-filter:blur(3px); display:flex; align-items:center; justify-content:center; z-index:400; opacity:0; pointer-events:none; transition:opacity .2s; padding:20px;}
+.modal-overlay.open{opacity:1; pointer-events:auto;}
+.modal-card{background:var(--bg-elevated); border:1px solid var(--border); border-radius:var(--radius-lg); padding:28px; width:100%; max-width:380px; box-shadow:var(--shadow-card);}
+.modal-tabs{display:flex; gap:6px; background:var(--bg-void); border:1px solid var(--border); border-radius:999px; padding:4px; margin-bottom:22px;}
+.modal-tab{flex:1; border:none; background:none; color:var(--text-muted); padding:9px 0; border-radius:999px; font-size:13.5px; font-weight:600;}
+.modal-tab.active{background:var(--accent-cyan-dim); color:var(--accent-cyan);}
+.modal-field{margin-bottom:14px;}
+.modal-field label{display:block; font-size:12px; color:var(--text-muted); font-family:var(--font-mono); text-transform:uppercase; letter-spacing:.06em; margin-bottom:7px;}
+.modal-field input{width:100%; background:var(--bg-void); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px 14px; color:var(--text-primary); font-size:14.5px;}
+.modal-field input:focus{border-color:var(--accent-cyan); outline:none; box-shadow:0 0 0 3px var(--accent-cyan-dim);}
+.modal-error{color:var(--risk-vhigh); font-size:13px; margin-bottom:12px; display:none;}
+.modal-msg{color:var(--risk-vlow); font-size:13px; margin-bottom:12px; display:none;}
+.modal-close{position:absolute; top:18px; right:18px; background:none; border:none; color:var(--text-muted); padding:4px;}
+.modal-card{position:relative;}
+.modal-forgot{display:block; text-align:center; font-size:12.5px; color:var(--text-muted); margin-top:14px;}
+.modal-forgot:hover{color:var(--accent-cyan);}
+.account-pill{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-secondary);}
+
+
+/* ============================= RESPONSIVE ============================= */
+@media (max-width: 900px){
+  .nav-links{display:none;}
+  .nav-right .btn-ghost{display:none;}
+  .hamburger{display:block;}
+  .hero-grid{grid-template-columns:1fr;}
+  .radar-wrap{order:-1; max-width:260px; margin:0 auto 8px;}
+  .hero h1{font-size:38px;}
+  .grid-6{grid-template-columns:repeat(2,1fr);}
+  .steps-4{grid-template-columns:repeat(2,1fr);}
+  .pricing-grid{grid-template-columns:1fr;}
+  .risk-card{grid-template-columns:1fr;}
+  .footer-grid{grid-template-columns:repeat(2,1fr);}
+  .threat-grid{grid-template-columns:1fr;}
+  .scanner-row{flex-direction:column;}
+  .section{padding:52px 0;}
+}
+</style>
+</head>
+<body>
+
+<!-- ============================= NAVBAR ============================= -->
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="#" class="brand" data-nav="home">
+      <svg class="brand-mark" viewBox="0 0 30 30" fill="none"><path d="M15 2L26 6.5V14.5C26 21.5 21.2 26.8 15 28.5C8.8 26.8 4 21.5 4 14.5V6.5L15 2Z" stroke="#4CD3FF" stroke-width="1.6" fill="rgba(76,211,255,.08)"/><path d="M10.5 15L13.5 18L20 11" stroke="#4CD3FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      ScamGuard
+    </a>
+    <ul class="nav-links">
+      <li><a href="#" data-nav="home">Home</a></li>
+      <li><a href="#" data-nav="how">How It Works</a></li>
+      <li><a href="#" data-nav="threats">Threats</a></li>
+      <li><a href="#" data-nav="pricing">Pricing</a></li>
+      <li><a href="#" data-nav="about">About</a></li>
+      <li><a href="#" data-nav="history">Scan History</a></li>
+    </ul>
+    <div class="nav-right">
+      <button class="btn btn-ghost btn-sm" id="loginNavBtn">Login</button>
+      <a class="btn btn-primary btn-sm" href="#" data-nav="home" data-focus-scanner="1">Check a Website</a>
+      <button class="hamburger" id="hamburgerBtn" aria-label="Open menu">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="#" data-nav="home">Home</a>
+    <a href="#" data-nav="how">How It Works</a>
+    <a href="#" data-nav="threats">Threats</a>
+    <a href="#" data-nav="pricing">Pricing</a>
+    <a href="#" data-nav="about">About</a>
+    <a href="#" data-nav="history">Scan History</a>
+    <button id="loginNavBtnMobile">Login</button>
+  </div>
+</nav>
+
+<main id="app">
+
+<!-- ============================= HOME ============================= -->
+<section id="page-home">
+  <div class="container hero">
+    <div class="hero-grid">
+      <div>
+        <div class="eyebrow">Evidence-based risk assessment</div>
+        <h1>Check Before<br>You Click<span class="accent">.</span></h1>
+        <p class="hero-sub">Analyze a website for scam and security warning signs before you buy, sign in, or share your information.</p>
+
+        <div class="scanner-card">
+          <span class="scanner-label">Paste a website URL</span>
+          <div class="scanner-row">
+            <input id="urlInput" class="scanner-input" type="text" placeholder="https://example.com" autocomplete="off" spellcheck="false">
+            <button class="btn btn-primary scan-btn" id="analyzeBtn">Analyze Website</button>
+          </div>
+          <div class="scan-error" id="scanError"></div>
+          <p class="scan-note">ScamGuard provides a risk assessment based on available signals. No automated system can guarantee that a website is safe.</p>
+        </div>
+        <div class="hero-chips">
+          <button class="chip" data-example="https://www.wikipedia.org">wikipedia.org</button>
+          <button class="chip" data-example="http://192.168.4.22-secure-login.win/verify">try a suspicious example</button>
+          <button class="chip" data-example="https://bit.ly/claim-your-prize">try a shortened link</button>
+        </div>
+      </div>
+
+      <div class="radar-wrap">
+        <svg class="radar" viewBox="0 0 420 420">
+          <circle class="radar-ring" cx="210" cy="210" r="70"/>
+          <circle class="radar-ring" cx="210" cy="210" r="120"/>
+          <circle class="radar-ring" cx="210" cy="210" r="170"/>
+          <path class="radar-shield" d="M210 55 L300 90 V190 C300 260 262 305 210 330 C158 305 120 260 120 190 V90 Z"/>
+          <path d="M175 205 L198 228 L250 170" stroke="#4CD3FF" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+          <g class="radar-sweep-group">
+            <line x1="210" y1="210" x2="210" y2="40" stroke="url(#sweepGrad)" stroke-width="2"/>
+          </g>
+          <defs>
+            <linearGradient id="sweepGrad" x1="0" y1="1" x2="0" y2="0">
+              <stop offset="0%" stop-color="#4CD3FF" stop-opacity="0"/>
+              <stop offset="100%" stop-color="#4CD3FF" stop-opacity=".8"/>
+            </linearGradient>
+          </defs>
+          <circle class="radar-blip radar-blip-pulse" cx="210" cy="140" r="4" style="animation-delay:0s"/>
+          <circle class="radar-blip radar-blip-pulse" cx="290" cy="210" r="4" style="animation-delay:.3s"/>
+          <circle class="radar-blip radar-blip-pulse" cx="255" cy="300" r="4" style="animation-delay:.6s"/>
+          <circle class="radar-blip radar-blip-pulse" cx="165" cy="300" r="4" style="animation-delay:.9s"/>
+          <circle class="radar-blip radar-blip-pulse" cx="130" cy="210" r="4" style="animation-delay:1.2s"/>
+          <circle class="radar-blip radar-blip-pulse" cx="210" cy="80" r="4" style="animation-delay:1.5s"/>
+          <text class="radar-label" x="210" y="130" text-anchor="middle">DOMAIN</text>
+          <text class="radar-label" x="330" y="214" text-anchor="start">SECURITY</text>
+          <text class="radar-label" x="258" y="322" text-anchor="middle">REPUTATION</text>
+          <text class="radar-label" x="162" y="322" text-anchor="middle">BUSINESS</text>
+          <text class="radar-label" x="90" y="214" text-anchor="end">BEHAVIOR</text>
+          <text class="radar-label" x="210" y="70" text-anchor="middle">SCAM SIGNALS</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="container section-tight">
+    <div class="section-head">
+      <h2>What ScamGuard checks</h2>
+      <p>Six categories of signals are combined into a single, explainable risk assessment.</p>
+    </div>
+    <div class="grid-6">
+      <div class="check-card"><div class="check-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18Z" stroke="currentColor" stroke-width="1.7"/></svg></div><h4>Domain</h4><p>Domain age, registration information, and suspicious naming characteristics.</p></div>
+      <div class="check-card"><div class="check-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.7"/></svg></div><h4>Security</h4><p>HTTPS, certificate information, redirects, and technical security signals.</p></div>
+      <div class="check-card"><div class="check-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 12h4l2-7 4 14 2-7h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div><h4>Reputation</h4><p>Available reputation and threat intelligence signals.</p></div>
+      <div class="check-card"><div class="check-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 21V9l8-5 8 5v12" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9 21v-6h6v6" stroke="currentColor" stroke-width="1.7"/></svg></div><h4>Business</h4><p>Business identity, contact information, policies, and transparency.</p></div>
+      <div class="check-card"><div class="check-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h10M4 17h16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M17 15l3 2-3 2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div><h4>Website Behavior</h4><p>Suspicious redirects, unusual behavior, and technical indicators.</p></div>
+      <div class="check-card"><div class="check-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2 3 6v6c0 5 4 8.5 9 10 5-1.5 9-5 9-10V6l-9-4Z" stroke="currentColor" stroke-width="1.7"/><path d="M12 8v5M12 16h.01" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg></div><h4>Scam Signals</h4><p>Patterns commonly associated with fraudulent websites.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================= HOW IT WORKS ============================= -->
+<section id="page-how" class="section hidden">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">Process</div>
+      <h2>How ScamGuard works</h2>
+      <p>Four steps take you from a pasted link to a plain-English understanding of the risk.</p>
+    </div>
+    <div class="steps-4">
+      <div class="step-card"><span class="step-num">01</span><h4>Paste</h4><p>Paste the website URL into the scanner.</p></div>
+      <div class="step-card"><span class="step-num">02</span><h4>Analyze</h4><p>ScamGuard checks available security, domain, and website-structure signals.</p></div>
+      <div class="step-card"><span class="step-num">03</span><h4>Evaluate</h4><p>The scoring engine combines the evidence collected from each check.</p></div>
+      <div class="step-card"><span class="step-num">04</span><h4>Understand</h4><p>You receive a risk score and a clear, plain-English explanation.</p></div>
+    </div>
+
+    <div class="card" style="margin-top:40px;">
+      <div class="card-title">This preview's scanning engine</div>
+      <p style="font-size:14.5px; line-height:1.8; margin-bottom:14px;">This deployed preview runs a real, transparent <strong style="color:var(--text-primary)">URL-structure heuristic engine</strong> entirely in your browser — it looks at the actual link you paste (protocol, hostname, TLD, subdomains, known shortener domains, brand-lookalike patterns, and similar structural signals). It does <strong style="color:var(--text-primary)">not</strong> fabricate domain-age, certificate, or reputation data.</p>
+      <p style="font-size:14.5px; line-height:1.8;">Checks that require a live backend — WHOIS/domain-age, certificate chain inspection, threat-intelligence databases, and following redirect chains — are clearly marked <span class="mono" style="color:var(--text-muted)">Not available</span> in every result until those integrations are connected server-side.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================= THREATS / SCAM LIBRARY ============================= -->
+<section id="page-threats" class="section hidden">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">Scam Library</div>
+      <h2>Know the patterns scammers use</h2>
+      <p>Tap a card to learn what it is, the warning signs, how scammers use it, and how to protect yourself.</p>
+    </div>
+    <div class="threat-grid" id="threatGrid"></div>
+  </div>
+</section>
+
+<!-- ============================= PRICING ============================= -->
+<section id="page-pricing" class="section hidden">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">Pricing</div>
+      <h2>Simple, transparent plans</h2>
+      <p>Start free. Upgrade when you need deeper reports and monitoring.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="price-card">
+        <div class="price-plan">Free</div>
+        <div class="price-amount">$0<span>/month</span></div>
+        <ul class="price-feats">
+          <li>✓ 5 website scans per day</li>
+          <li>✓ Risk score &amp; risk band</li>
+          <li>✓ Warning signs &amp; positive signals</li>
+          <li>✓ Scan history (stored on this device)</li>
+        </ul>
+        <button class="btn btn-ghost btn-block" data-nav="home" data-focus-scanner="1">Start scanning</button>
+      </div>
+      <div class="price-card popular">
+        <span class="popular-tag">Most Popular</span>
+        <div class="price-plan">Pro</div>
+        <div class="price-amount">$7.99<span>/month</span></div>
+        <ul class="price-feats">
+          <li>✓ 100 scans / month</li>
+          <li>✓ Full technical details</li>
+          <li>✓ Extended scan history</li>
+          <li class="future">✓ Watchlist with alerts<span class="future-tag">NOT CONNECTED</span></li>
+          <li class="future">✓ Advanced reputation checks<span class="future-tag">NOT CONNECTED</span></li>
+        </ul>
+        <button class="btn btn-primary btn-block" data-toast="Payments aren't connected in this preview yet.">Upgrade to Pro</button>
+      </div>
+      <div class="price-card">
+        <div class="price-plan">Business</div>
+        <div class="price-amount">$29.99<span>/month</span></div>
+        <ul class="price-feats">
+          <li class="future">✓ 1,000 scans / month<span class="future-tag">FUTURE</span></li>
+          <li class="future">✓ Bulk URL &amp; CSV scanning<span class="future-tag">FUTURE</span></li>
+          <li class="future">✓ API access<span class="future-tag">FUTURE</span></li>
+          <li class="future">✓ Team members<span class="future-tag">FUTURE</span></li>
+        </ul>
+        <button class="btn btn-ghost btn-block" data-toast="Business plan isn't available yet — architecture is documented for a future release.">Contact sales</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================= ABOUT ============================= -->
+<section id="page-about" class="section hidden">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">About</div>
+      <h2>Why ScamGuard exists</h2>
+    </div>
+    <div class="about-copy">
+      <p>Fake online stores, phishing pages, and impersonation sites are built to look convincing in the seconds before someone enters a password or a card number. <strong>ScamGuard exists to slow that moment down</strong> — giving people a clear, evidence-based second opinion before they click, sign in, or pay.</p>
+      <p>ScamGuard doesn't claim to catch every scam or guarantee that any website is safe. It's built to be honest about what it actually knows: every signal shown in a report is one ScamGuard's checks genuinely found, and every check it couldn't run is labeled as unavailable rather than guessed at.</p>
+      <p>The goal is simple: help ordinary people make a more informed decision, in plain language, before something goes wrong.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================= SCAN HISTORY ============================= -->
+<section id="page-history" class="section hidden">
+  <div class="container">
+    <div class="section-head" style="margin-bottom:24px;">
+      <div class="eyebrow">Dashboard</div>
+      <h2>Scan History</h2>
+      <p>Scans are saved to your account when you're logged in. Log in from the navbar to sync history across devices — otherwise it's stored only on this browser.</p>
+    </div>
+    <div class="card">
+      <div id="historyList"></div>
+      <div id="historyEmpty" class="empty-state hidden">No scans yet. Run a scan from the homepage to see it appear here.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================= PRIVACY POLICY ============================= -->
+<section id="page-privacy" class="section hidden">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">Legal</div>
+      <h2>Privacy Policy</h2>
+      <p>Last updated August 21, 2026. Plain-language summary of what ScamGuard does and doesn't do with your data.</p>
+    </div>
+    <div class="about-copy">
+      <p><strong>What this preview collects:</strong> Nothing is sent to a server. When you scan a URL, ScamGuard analyzes the link entirely in your browser. The only thing saved is your scan history, and it's saved on your own device, not on ScamGuard's servers — see below.</p>
+
+      <p><strong>Scan history:</strong> Each scan you run (domain, score, date) is stored locally using your browser's on-device storage so you can review it later in Scan History. This data is tied to your device/browser, not to an account, and is never transmitted anywhere. You can delete any entry, or all of them, at any time from the Scan History page.</p>
+
+      <p><strong>URLs you scan:</strong> ScamGuard does not log, store, or transmit the URLs you analyze to any external service. Because links can contain sensitive information (session tokens, email addresses, tracking identifiers), avoid pasting a URL that isn't meant to be shared if you're ever using a version of ScamGuard that syncs history to a server.</p>
+
+      <p><strong>Accounts and payments:</strong> Login and paid plans are not connected in this preview — no account data or payment information is collected because those systems don't exist yet.</p>
+
+      <p><strong>Future versions:</strong> If ScamGuard adds server-side scanning (domain age, certificates, reputation databases) or accounts, this policy will be updated to explain exactly what's collected, why, how long it's kept, and how to delete it — before those features go live, not after.</p>
+
+      <p><strong>Contact:</strong> Questions about this policy can be sent to the site owner listed in the footer.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================= SCANNING ============================= -->
+<section id="page-scanning" class="section hidden">
+  <div class="container scan-progress-wrap">
+    <div class="scan-ring-outer">
+      <svg viewBox="0 0 120 120" width="120" height="120">
+        <circle cx="60" cy="60" r="52" fill="none" stroke="#1E293B" stroke-width="6"/>
+        <circle id="scanRingProgress" cx="60" cy="60" r="52" fill="none" stroke="#4CD3FF" stroke-width="6" stroke-linecap="round" stroke-dasharray="327" stroke-dashoffset="327" transform="rotate(-90 60 60)"/>
+      </svg>
+    </div>
+    <h2>Analyzing website</h2>
+    <span class="scan-target mono" id="scanTargetLabel">example.com</span>
+    <div class="scan-steps" id="scanStepsList"></div>
+  </div>
+</section>
+
+<!-- ============================= RESULTS ============================= -->
+<section id="page-results" class="section hidden">
+  <div class="container">
+    <div class="results-head">
+      <div>
+        <div class="eyebrow">Website Risk Assessment</div>
+        <div class="results-domain mono" id="resultDomain">example.com</div>
+        <div class="results-meta" id="resultMeta">Scanned —</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" data-nav="home" data-focus-scanner="1">New scan</button>
+    </div>
+
+    <div class="card risk-card">
+      <div class="gauge-wrap">
+        <svg viewBox="0 0 200 200" width="200" height="200">
+          <circle cx="100" cy="100" r="86" fill="none" stroke="#1E293B" stroke-width="14"/>
+          <circle id="gaugeCircle" cx="100" cy="100" r="86" fill="none" stroke="#4CD3FF" stroke-width="14" stroke-linecap="round" stroke-dasharray="540" stroke-dashoffset="540" transform="rotate(-90 100 100)"/>
+        </svg>
+        <div class="gauge-center">
+          <span class="gauge-score mono" id="gaugeScore">0</span>
+          <span class="gauge-max">/ 100</span>
+        </div>
+      </div>
+      <div>
+        <span class="risk-badge" id="riskBadge"><span id="riskBadgeIcon"></span><span id="riskBadgeText">Very Low Risk</span></span>
+        <p id="riskSummaryLine" style="font-size:14.5px;">No major warning signs were detected by the checks currently available.</p>
+        <div class="confidence-note" id="confidenceNote"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Why did ScamGuard give this score?</div>
+      <p class="explain-text" id="explainText"></p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">⚠ Warning Signs</div>
+      <div class="signal-list" id="warningList"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">✓ Positive Signals</div>
+      <div class="signal-list" id="positiveList"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">What should I do?</div>
+      <div class="advice-box" id="adviceBox"></div>
+    </div>
+
+    <div class="card">
+      <div class="tech-toggle" id="techToggle">
+        <div class="card-title" style="margin-bottom:0;">Technical Details</div>
+        <svg id="techChevron" width="16" height="16" viewBox="0 0 24 24" fill="none" style="transition:transform .2s;"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="tech-body" id="techBody"></div>
+    </div>
+
+    <div class="card">
+      <p class="disclaimer"><strong style="color:var(--text-secondary)">Disclaimer:</strong> ScamGuard provides automated risk assessments based on available information. A low-risk result does not guarantee that a website is legitimate, and a high-risk result does not by itself prove fraud. Always use your own judgment before making payments or sharing sensitive information.</p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ============================= FOOTER ============================= -->
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <div class="brand" style="margin-bottom:12px;">
+          <svg class="brand-mark" viewBox="0 0 30 30" fill="none"><path d="M15 2L26 6.5V14.5C26 21.5 21.2 26.8 15 28.5C8.8 26.8 4 21.5 4 14.5V6.5L15 2Z" stroke="#4CD3FF" stroke-width="1.6" fill="rgba(76,211,255,.08)"/><path d="M10.5 15L13.5 18L20 11" stroke="#4CD3FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          ScamGuard
+        </div>
+        <p style="font-size:13.5px; max-width:240px;">Check before you click. Know the risks before you buy, sign in, or share your information.</p>
+      </div>
+      <div class="footer-col"><h5>Product</h5><a href="#" data-nav="home">Scanner</a><a href="#" data-nav="pricing">Pricing</a><a href="#" data-nav="history">Scan History</a></div>
+      <div class="footer-col"><h5>Company</h5><a href="#" data-nav="about">About</a><a href="#" data-nav="how">How It Works</a></div>
+      <div class="footer-col"><h5>Resources</h5><a href="#" data-nav="threats">Scam Library</a><a href="#" data-toast="Reporting isn't connected in this preview yet.">Report a Website</a></div>
+      <div class="footer-col"><h5>Legal</h5><a href="#" data-nav="privacy">Privacy Policy</a><a href="#" data-toast="Placeholder for this preview.">Terms</a><a href="#" data-toast="Placeholder for this preview.">Contact</a></div>
+    </div>
+    <p class="footer-disclaimer">ScamGuard is an automated risk-assessment service. Results are informational and do not guarantee website legitimacy or fraud.</p>
+    <div class="footer-bottom"><span>© 2026 ScamGuard</span><span>Evidence-based website risk assessment</span></div>
+    <div aria-hidden="true" style="text-align:center; margin-top:14px; font-size:9px; letter-spacing:.02em; color:#12161d; user-select:none;">Owner of this website is Abdallah Alrashdi</div>
+  </div>
+</footer>
+
+<div class="modal-overlay" id="authModal">
+  <div class="modal-card">
+    <button class="modal-close" id="authModalClose" aria-label="Close">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </button>
+    <div class="modal-tabs">
+      <button class="modal-tab active" id="tabLogin">Log In</button>
+      <button class="modal-tab" id="tabSignup">Sign Up</button>
+    </div>
+    <div class="modal-error" id="authError"></div>
+    <div class="modal-msg" id="authMsg"></div>
+    <form id="authForm">
+      <div class="modal-field">
+        <label>Email</label>
+        <input type="email" id="authEmail" autocomplete="email" required>
+      </div>
+      <div class="modal-field">
+        <label>Password</label>
+        <input type="password" id="authPassword" autocomplete="current-password" required minlength="8">
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" id="authSubmitBtn">Log In</button>
+    </form>
+    <a href="#" class="modal-forgot" id="forgotLink">Forgot password?</a>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =====================================================================
+   ScamGuard — client-side application logic
+   -----------------------------------------------------------------
+   IMPORTANT (read this before extending):
+   Every signal produced by `runHeuristicScan()` below is computed
+   directly from the URL the person typed — there is no fabricated
+   or random data anywhere in this file. Checks that would require a
+   live backend (WHOIS/domain-age, TLS certificate inspection, threat
+   intelligence databases, following redirect chains) are NOT
+   simulated — they are explicitly reported as unavailable. See
+   ARCHITECTURE.md for how to wire those up server-side.
+===================================================================== */
+
+/* ---------------------------- NAV / ROUTING ---------------------------- */
+const pages = ['home','how','threats','pricing','about','history','privacy','scanning','results'];
+function showPage(id){
+  pages.forEach(p => {
+    const el = document.getElementById('page-' + p);
+    if (el) el.classList.toggle('hidden', p !== id);
+  });
+  document.querySelectorAll('.nav-links a').forEach(a=>{
+    a.classList.toggle('active', a.dataset.nav === id);
+  });
+  window.scrollTo({top:0, behavior:'instant' in window ? 'instant' : 'auto'});
+  if (id === 'history') renderHistory();
+}
+
+document.addEventListener('click', (e)=>{
+  const navEl = e.target.closest('[data-nav]');
+  if (navEl){
+    e.preventDefault();
+    showPage(navEl.dataset.nav);
+    document.getElementById('mobileMenu').classList.remove('open');
+    if (navEl.dataset.focusScanner){
+      setTimeout(()=>document.getElementById('urlInput').focus(), 150);
+    }
+  }
+  const toastEl = e.target.closest('[data-toast]');
+  if (toastEl){
+    e.preventDefault();
+    showToast(toastEl.dataset.toast);
+  }
+  const exampleEl = e.target.closest('[data-example]');
+  if (exampleEl){
+    document.getElementById('urlInput').value = exampleEl.dataset.example;
+    document.getElementById('urlInput').focus();
+  }
+});
+
+document.getElementById('hamburgerBtn').addEventListener('click', ()=>{
+  document.getElementById('mobileMenu').classList.toggle('open');
+});
+
+/* ---------------------------- TOAST ---------------------------- */
+let toastTimer = null;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 3200);
+}
+
+/* ---------------------------- URL VALIDATION / NORMALIZATION ---------------------------- */
+const KNOWN_SHORTENERS = ['bit.ly','tinyurl.com','t.co','goo.gl','ow.ly','is.gd','buff.ly','rebrand.ly','cutt.ly','shorturl.at','tiny.cc','rb.gy'];
+const SUSPICIOUS_TLDS = ['zip','mov','xyz','top','tk','ml','ga','cf','gq','work','click','link','loan','win','review','country','stream','gdn','date','racing','party'];
+const SCAM_KEYWORDS = ['free-gift','claim-your','claim-now','verify-account','verify-now','confirm-account','account-suspended','urgent-action','limited-time','act-now','you-won','you-ve-won','prize-claim','crypto-giveaway','double-your','bonus-claim','secure-login','update-billing','win-prize','gift-card','flash-sale','90-off','80-off','clearance-sale'];
+const IMPERSONATED_BRANDS = ['paypal','amazon','apple','microsoft','google','netflix','facebook','instagram','bankofamerica','wellsfargo','chase','ebay','walmart','fedex','ups','dhl','irs','usps','coinbase','binance'];
+const KNOWN_BRAND_DOMAINS = new Set(['paypal.com','amazon.com','apple.com','microsoft.com','google.com','netflix.com','facebook.com','instagram.com','bankofamerica.com','wellsfargo.com','chase.com','ebay.com','walmart.com','fedex.com','ups.com','dhl.com','irs.gov','usps.com','coinbase.com','binance.com']);
+
+function normalizeAndValidateUrl(raw){
+  let input = (raw || '').trim();
+  if (!input) return {ok:false, error:'Please enter a website URL.'};
+  if (/\s/.test(input)) input = input.replace(/\s+/g,'');
+  if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(input)){
+    input = 'https://' + input;
+  }
+  let u;
+  try{
+    u = new URL(input);
+  }catch(err){
+    return {ok:false, error:"That doesn't look like a valid website URL."};
+  }
+  if (!['http:','https:'].includes(u.protocol)){
+    return {ok:false, error:'Only http and https website links can be analyzed.'};
+  }
+  const host = u.hostname.toLowerCase();
+  if (!host || !host.includes('.') && !isIPAddress(host)){
+    return {ok:false, error:"That doesn't look like a valid website URL."};
+  }
+  // Block local/private targets from ever being "fetched" server-side (SSRF guardrail placeholder).
+  const privatePatterns = [/^localhost$/i, /^127\./, /^10\./, /^192\.168\./, /^169\.254\./, /^0\.0\.0\.0$/, /^::1$/, /^\[::1\]$/, /^172\.(1[6-9]|2[0-9]|3[0-1])\./];
+  const isPrivate = privatePatterns.some(rx => rx.test(host));
+  return {ok:true, url:u, host, isPrivate};
+}
+
+function isIPAddress(host){
+  const ipv4 = /^(\d{1,3}\.){3}\d{1,3}$/;
+  const ipv6 = /^\[?[0-9a-fA-F:]+\]?$/;
+  return ipv4.test(host) || (host.includes(':') && ipv6.test(host));
+}
+
+/* ---------------------------- HEURISTIC SCAN ENGINE ---------------------------- */
+/* Returns { score, signals: [...], techDetails: {...}, confidence } */
+function runHeuristicScan(u, host, isPrivateTarget){
+  const signals = []; // {category, title, severity, evidence, positive}
+  const fullUrl = u.href.toLowerCase();
+  const path = (u.pathname + u.search).toLowerCase();
+  const labels = host.split('.');
+  const tld = labels[labels.length - 1];
+  const isIp = isIPAddress(host);
+
+  const add = (category, title, severity, explanation, evidence, positive=false) => {
+    signals.push({category, title, severity, explanation, evidence, positive});
+  };
+
+  // --- Security: HTTPS ---
+  if (u.protocol === 'https:'){
+    add('Security','Secure Connection','info','The site link uses HTTPS, which encrypts data in transit.','Protocol: https://', true);
+  } else {
+    add('Security','No Encrypted Connection','high','This link uses plain HTTP, so data submitted to the site would not be encrypted in transit.','Protocol: http://');
+  }
+
+  // --- Domain: IP address as host ---
+  if (isIp){
+    add('Domain','Raw IP Address Used as Website Address','high','The link points directly at a numeric IP address instead of a normal domain name — a pattern rarely used by legitimate consumer websites and commonly used to host scam or phishing pages.','Host: '+host);
+  }
+
+  // --- Website Behavior: @ symbol obfuscation ---
+  if (fullUrl.includes('@') && !isIp){
+    add('Website Behavior','Embedded "@" in URL','high','The link contains an "@" symbol, a technique sometimes used to disguise the true destination of a link.','URL contains "@" before the real host');
+  }
+
+  // --- Domain: punycode / internationalized domain ---
+  if (labels.some(l => l.startsWith('xn--'))){
+    add('Domain','Internationalized Domain Encoding Detected','medium','This domain uses punycode (internationalized character encoding). This is sometimes used legitimately, but is also a known technique for look-alike domains that visually mimic trusted brands.','Host: '+host);
+  }
+
+  // --- Domain: known URL shortener ---
+  const isShortener = KNOWN_SHORTENERS.includes(host) || KNOWN_SHORTENERS.some(s => host.endsWith('.'+s));
+  if (isShortener){
+    add('Website Behavior','Shortened Link','medium','This is a link-shortening service. The final destination is hidden until the link is opened, which is commonly used to disguise scam or phishing pages.','Host: '+host);
+  }
+
+  // --- Domain: suspicious TLD ---
+  if (SUSPICIOUS_TLDS.includes(tld)){
+    add('Domain','Less-Common Top-Level Domain','low','The ".'+tld+'" top-level domain is used by many legitimate sites, but is also disproportionately used for short-lived scam and spam domains.','TLD: .'+tld);
+  }
+
+  // --- Domain: excessive hyphens ---
+  const hyphenCount = (host.match(/-/g)||[]).length;
+  if (hyphenCount >= 3){
+    add('Domain','Unusually Many Hyphens in Domain','medium','The domain name contains an unusually high number of hyphens, a pattern common in auto-generated scam or phishing domains impersonating a brand.','Hyphens in host: '+hyphenCount);
+  }
+
+  // --- Domain: excessive subdomains ---
+  if (labels.length >= 5){
+    add('Domain','Unusually Long Subdomain Chain','medium','The web address has an unusually long chain of subdomains, sometimes used to make a link look more legitimate than it is at a glance.','Host segments: '+labels.length);
+  }
+
+  // --- Domain: very long domain ---
+  if (host.length >= 40){
+    add('Domain','Unusually Long Domain Name','low','The domain name is unusually long, which can be used to bury a brand name inside an unrelated address.','Host length: '+host.length+' characters');
+  }
+
+  // --- Business/Scam: keyword pattern matching in host+path ---
+  const matchedKeywords = SCAM_KEYWORDS.filter(k => fullUrl.includes(k));
+  if (matchedKeywords.length){
+    add('Scam Signals','Urgency or Prize-Claim Language in the Link', matchedKeywords.length > 1 ? 'high':'medium','The web address itself contains wording commonly used in phishing and prize/urgency scams (e.g. "claim now", "verify account", "you\'ve won").','Matched: '+matchedKeywords.slice(0,4).join(', '));
+  }
+
+  // --- Scam Signals: brand impersonation heuristic ---
+  const registrable = labels.length>=2 ? labels.slice(-2).join('.') : host;
+  const impersonated = IMPERSONATED_BRANDS.find(b => host.includes(b));
+  if (impersonated && !KNOWN_BRAND_DOMAINS.has(registrable)){
+    add('Scam Signals','Possible Brand Impersonation','high','The domain contains the name "'+impersonated+'" but is not that brand\'s official domain. This pattern is frequently used in phishing pages that mimic a trusted company.','Host contains "'+impersonated+'", registrable domain is "'+registrable+'"');
+  } else if (impersonated && KNOWN_BRAND_DOMAINS.has(registrable)){
+    add('Business','Matches Known Official Domain','info','The domain matches a recognized official domain for this brand.','Registrable domain: '+registrable, true);
+  }
+
+  // --- Website Behavior: non-standard port ---
+  if (u.port && !['80','443',''].includes(u.port)){
+    add('Website Behavior','Non-Standard Port','low','The link specifies a non-standard network port, which is unusual for typical consumer websites.','Port: '+u.port);
+  }
+
+  // --- Private/local target ---
+  if (isPrivateTarget){
+    add('Security','Private or Local Network Address','high','This address points to a private or local network location. ScamGuard cannot and will not analyze internal/private network destinations from its servers.','Host: '+host);
+  }
+
+  // --- Positive signal: short, clean, simple domain with common TLD ---
+  const commonTlds = ['com','org','net','edu','gov'];
+  if (!isIp && commonTlds.includes(tld) && hyphenCount === 0 && labels.length <= 3 && !matchedKeywords.length && !impersonated){
+    add('Domain','Simple, Conventional Domain Structure','info','The domain follows a simple, conventional structure with a common top-level domain and no unusual characters.','Host: '+host, true);
+  }
+
+  // --- Positive: no scam keywords found ---
+  if (!matchedKeywords.length){
+    add('Scam Signals','No Urgency/Prize Language Detected in Link','info','No wording commonly associated with prize, urgency, or account-verification scams was found in the web address.', null, true);
+  }
+
+  /* ---- Scoring: weighted sum, clamped 0-100 ---- */
+  const weights = {high:26, medium:13, low:6, info:0};
+  let raw = 0;
+  signals.forEach(s => { if(!s.positive) raw += weights[s.severity] || 0; });
+  // small positive offset for confirmed positive signals, capped
+  const positiveCount = signals.filter(s=>s.positive).length;
+  raw -= Math.min(positiveCount * 3, 10);
+  const score = Math.max(0, Math.min(100, Math.round(raw)));
+
+  const techDetails = {
+    'Domain': host,
+    'Registrable Domain': registrable,
+    'TLD': tld,
+    'Domain Age': 'Not available — requires WHOIS/RDAP backend integration',
+    'Registrar': 'Not available — requires WHOIS/RDAP backend integration',
+    'HTTPS': u.protocol === 'https:' ? 'Yes' : 'No',
+    'Certificate Details': 'Not available — requires server-side TLS inspection',
+    'Redirect Chain': 'Not available — requires safe server-side fetch (SSRF-guarded)',
+    'DNS Information': 'Not available — requires DNS lookup backend',
+    'Reputation / Threat Intelligence': 'Not available — requires reputation API integration',
+    'Path Analyzed': u.pathname + (u.search || ''),
+    'Scan Timestamp': new Date().toISOString(),
+  };
+
+  return {score, signals, techDetails, unavailableCount: 5};
+}
+
+/* ---------------------------- RISK BANDS ---------------------------- */
+function riskBand(score){
+  if (score <= 20) return {label:'Very Low Risk', color:'var(--risk-vlow)', key:'vlow'};
+  if (score <= 40) return {label:'Low Risk', color:'var(--risk-low)', key:'low'};
+  if (score <= 60) return {label:'Suspicious', color:'var(--risk-mid)', key:'mid'};
+  if (score <= 80) return {label:'High Risk', color:'var(--risk-high)', key:'high'};
+  return {label:'Very High Risk', color:'var(--risk-vhigh)', key:'vhigh'};
+}
+
+/* ---------------------------- SCAN FLOW (UI) ---------------------------- */
+const SCAN_STEPS = [
+  'Validating URL',
+  'Inspecting domain',
+  'Checking security signals',
+  'Checking reputation signals',
+  'Analyzing website characteristics',
+  'Evaluating scam indicators',
+  'Calculating risk assessment'
+];
+
+document.getElementById('analyzeBtn').addEventListener('click', startScan);
+document.getElementById('urlInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter') startScan(); });
+
+function startScan(){
+  const raw = document.getElementById('urlInput').value;
+  const errEl = document.getElementById('scanError');
+  const result = normalizeAndValidateUrl(raw);
+  if (!result.ok){
+    errEl.textContent = result.error;
+    errEl.style.display = 'block';
+    return;
+  }
+  errEl.style.display = 'none';
+
+  showPage('scanning');
+  document.getElementById('scanTargetLabel').textContent = result.host;
+  const stepsList = document.getElementById('scanStepsList');
+  stepsList.innerHTML = SCAN_STEPS.map((s,i)=>`
+    <div class="scan-step" id="step-${i}">
+      <span class="scan-step-icon"><span class="spinner" style="display:none;"></span></span>
+      <span class="scan-step-text">${s}</span>
+    </div>`).join('');
+
+  const ring = document.getElementById('scanRingProgress');
+  const circumference = 327;
+
+  let i = 0;
+  function nextStep(){
+    if (i > 0){
+      const prev = document.getElementById('step-'+(i-1));
+      prev.classList.remove('active'); prev.classList.add('done');
+      prev.querySelector('.scan-step-icon').innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#04121A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    }
+    if (i < SCAN_STEPS.length){
+      const cur = document.getElementById('step-'+i);
+      cur.classList.add('active');
+      cur.querySelector('.spinner').style.display = 'block';
+      const progress = ((i+1)/SCAN_STEPS.length) * circumference;
+      ring.style.strokeDashoffset = (circumference - progress).toString();
+      i++;
+      setTimeout(nextStep, 340 + Math.random()*220);
+    } else {
+      setTimeout(()=> finishScan(result), 260);
+    }
+  }
+  nextStep();
+}
+
+function finishScan(validated){
+  const scan = runHeuristicScan(validated.url, validated.host, validated.isPrivate);
+  renderResults(validated.host, scan);
+  saveToHistory(validated.host, scan);
+  showPage('results');
+}
+
+/* ---------------------------- RESULTS RENDERING ---------------------------- */
+const SEV_COLOR = {high:'var(--risk-vhigh)', medium:'var(--risk-mid)', low:'var(--risk-low)', info:'var(--risk-vlow)'};
+const SEV_LABEL = {high:'HIGH RISK', medium:'MEDIUM RISK', low:'LOW RISK', info:'INFO'};
+
+function renderResults(host, scan){
+  const {score, signals, techDetails} = scan;
+  const band = riskBand(score);
+
+  document.getElementById('resultDomain').textContent = host;
+  document.getElementById('resultMeta').textContent = 'Scanned ' + new Date().toLocaleString();
+
+  // Gauge
+  const gaugeCircle = document.getElementById('gaugeCircle');
+  const circumference = 540;
+  const offset = circumference - (score/100)*circumference;
+  gaugeCircle.style.stroke = band.color;
+  requestAnimationFrame(()=>{ gaugeCircle.style.transition = 'stroke-dashoffset 1s cubic-bezier(.2,.8,.2,1)'; gaugeCircle.style.strokeDashoffset = offset; });
+  document.getElementById('gaugeScore').textContent = score;
+  document.getElementById('gaugeScore').style.color = band.color;
+
+  const badge = document.getElementById('riskBadge');
+  badge.style.background = 'color-mix(in srgb,' + band.color + ' 16%, transparent)';
+  badge.style.color = band.color;
+  badge.style.border = '1px solid ' + band.color;
+  document.getElementById('riskBadgeText').textContent = band.label;
+  document.getElementById('riskBadgeIcon').innerHTML = band.key==='vlow'||band.key==='low'
+    ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 9v4M12 17h.01" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M10.3 3.8 2.7 17a2 2 0 0 0 1.7 3h15.2a2 2 0 0 0 1.7-3L13.7 3.8a2 2 0 0 0-3.4 0Z" stroke="currentColor" stroke-width="1.8"/></svg>';
+
+  const warnings = signals.filter(s=>!s.positive);
+  const positives = signals.filter(s=>s.positive);
+
+  document.getElementById('riskSummaryLine').textContent = warnings.length
+    ? `ScamGuard found ${warnings.length} warning sign${warnings.length===1?'':'s'} worth a closer look before you proceed.`
+    : `No warning signs were found by the checks currently available.`;
+
+  document.getElementById('confidenceNote').innerHTML =
+    'This score is based on <strong style="color:var(--text-secondary)">URL-structure signals only</strong>. Domain age, certificate, and reputation checks are not connected in this preview — see Technical Details below. Confidence: <strong style="color:var(--text-secondary)">Limited</strong>.';
+
+  // Explanation
+  const topWarnings = warnings.slice().sort((a,b)=>({high:3,medium:2,low:1}[b.severity]-{high:3,medium:2,low:1}[a.severity])).slice(0,2);
+  let explain;
+  if (!warnings.length){
+    explain = `ScamGuard's available checks did not surface any structural warning signs for this link. This reflects only the signals currently available (URL structure) — domain age, certificate, and reputation data are not yet connected, so this is not a guarantee of legitimacy.`;
+  } else {
+    const names = topWarnings.map(w=>w.title.toLowerCase()).join(' and ');
+    explain = `ScamGuard found ${warnings.length} indicator${warnings.length===1?'':'s'} that deserve caution, most notably ${names}. These signals do not prove fraud on their own, but they increase the overall risk assessment. Review the warning signs below before entering any personal or payment information.`;
+  }
+  document.getElementById('explainText').textContent = explain;
+
+  // Warning list
+  const wEl = document.getElementById('warningList');
+  wEl.innerHTML = warnings.length ? warnings.map(signalRow).join('') : '<div class="empty-state">No warning signs were found by the checks currently available.</div>';
+
+  // Positive list
+  const pEl = document.getElementById('positiveList');
+  pEl.innerHTML = positives.length ? positives.map(signalRow).join('') : '<div class="empty-state">No positive signals were confirmed by the checks currently available.</div>';
+
+  // Advice
+  const adviceEl = document.getElementById('adviceBox');
+  let advice;
+  if (band.key === 'high' || band.key === 'vhigh'){
+    advice = 'Avoid entering passwords or payment information until you can independently verify the business through an official, separately-searched source.';
+  } else if (band.key === 'mid'){
+    advice = 'Proceed carefully and verify the company through independent sources — official social media, reviews, or a direct search — before making a purchase.';
+  } else {
+    advice = 'No major warning signs were detected by the checks currently available. This does not guarantee that the website is legitimate — use your own judgment.';
+  }
+  adviceEl.innerHTML = `<p style="font-size:14px; color:var(--text-secondary); line-height:1.6;">${advice}</p>`;
+
+  // Technical details
+  const techEl = document.getElementById('techBody');
+  techEl.innerHTML = Object.entries(techDetails).map(([k,v])=>{
+    const isUnavail = typeof v === 'string' && v.startsWith('Not available');
+    return `<div class="tech-row"><span class="tech-key">${k}</span><span class="tech-val ${isUnavail?'unavailable':''}">${escapeHtml(v)}</span></div>`;
+  }).join('');
+}
+
+function signalRow(s){
+  return `<div class="signal-item">
+    <span class="signal-icon" style="background:color-mix(in srgb, ${SEV_COLOR[s.severity]} 16%, transparent); color:${SEV_COLOR[s.severity]};">${severityIcon(s.severity)}</span>
+    <div class="signal-body">
+      <h4>${escapeHtml(s.title)} <span class="signal-sev" style="background:color-mix(in srgb, ${SEV_COLOR[s.severity]} 20%, transparent); color:${SEV_COLOR[s.severity]};">${SEV_LABEL[s.severity]}</span></h4>
+      <p>${escapeHtml(s.explanation)}</p>
+      ${s.evidence ? `<div class="signal-evidence">Evidence: ${escapeHtml(s.evidence)}</div>` : ''}
+    </div>
+  </div>`;
+}
+function severityIcon(sev){
+  if (sev==='info') return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 9v4M12 17h.01" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M10.3 3.8 2.7 17a2 2 0 0 0 1.7 3h15.2a2 2 0 0 0 1.7-3L13.7 3.8a2 2 0 0 0-3.4 0Z" stroke="currentColor" stroke-width="1.8"/></svg>';
+}
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+document.getElementById('techToggle').addEventListener('click', ()=>{
+  const body = document.getElementById('techBody');
+  const chevron = document.getElementById('techChevron');
+  body.classList.toggle('open');
+  chevron.style.transform = body.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
+});
+
+/* ---------------------------- SCAN HISTORY (persisted via window.storage) ---------------------------- */
+const HISTORY_KEY = 'scan-history';
+
+async function saveToHistory(host, scan){
+  // Always keep an on-device copy so history still works while logged out.
+  try{
+    let list = [];
+    try{
+      const existing = await window.storage.get(HISTORY_KEY, false);
+      if (existing && existing.value) list = JSON.parse(existing.value);
+    }catch(e){ list = []; }
+    list.unshift({
+      domain: host,
+      score: scan.score,
+      band: riskBand(scan.score).label,
+      warnings: scan.signals.filter(s=>!s.positive).length,
+      positives: scan.signals.filter(s=>s.positive).length,
+      date: new Date().toISOString()
+    });
+    list = list.slice(0, 50);
+    await window.storage.set(HISTORY_KEY, JSON.stringify(list), false);
+  }catch(e){
+    console.warn('History storage unavailable:', e);
+  }
+
+  // If logged in, also save to the account's server-side history.
+  if (currentUser){
+    try{
+      await fetch('/.netlify/functions/scan-history', {
+        method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include',
+        body: JSON.stringify({
+          domain: host,
+          score: scan.score,
+          riskLevel: riskBand(scan.score).label,
+          warnings: scan.signals.filter(s=>!s.positive).length,
+          positives: scan.signals.filter(s=>s.positive).length
+        })
+      });
+    }catch(e){ /* backend not connected yet — on-device copy above still works */ }
+  }
+}
+
+async function renderHistory(){
+  const listEl = document.getElementById('historyList');
+  const emptyEl = document.getElementById('historyEmpty');
+
+  // Prefer account history when logged in and reachable; fall back to on-device.
+  if (currentUser){
+    try{
+      const res = await fetch('/.netlify/functions/scan-history', {credentials:'include'});
+      if (res.ok){
+        const data = await res.json();
+        const list = (data.scans || []).map(s => ({
+          domain: s.domain, score: s.score, warnings: s.warnings, positives: s.positives, date: s.created_at, id: s.id, remote: true
+        }));
+        return renderHistoryList(list, listEl, emptyEl);
+      }
+    }catch(e){ /* fall through to on-device history below */ }
+  }
+
+  let list = [];
+  try{
+    const existing = await window.storage.get(HISTORY_KEY, false);
+    if (existing && existing.value) list = JSON.parse(existing.value);
+  }catch(e){ list = []; }
+  renderHistoryList(list, listEl, emptyEl);
+}
+
+function renderHistoryList(list, listEl, emptyEl){
+  if (!list.length){
+    listEl.innerHTML = '';
+    emptyEl.classList.remove('hidden');
+    return;
+  }
+  emptyEl.classList.add('hidden');
+  listEl.innerHTML = list.map((item, idx) => {
+    const band = riskBand(item.score);
+    const d = new Date(item.date);
+    return `<div class="history-item" data-idx="${idx}">
+      <div class="history-left">
+        <span class="history-dot" style="background:${band.color}"></span>
+        <div>
+          <div class="history-domain">${escapeHtml(item.domain)}</div>
+          <div class="history-date">${d.toLocaleString()} · ${item.warnings} warning${item.warnings===1?'':'s'} · ${item.positives} positive</div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:16px;">
+        <span class="history-score mono" style="color:${band.color}">${item.score}</span>
+        <button class="history-del" data-del="${idx}" data-remote-id="${item.id||''}" aria-label="Delete scan">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+
+  listEl.querySelectorAll('[data-del]').forEach(btn=>{
+    btn.addEventListener('click', async (e)=>{
+      e.stopPropagation();
+      const idx = parseInt(btn.dataset.del,10);
+      const remoteId = btn.dataset.remoteId;
+      if (remoteId){
+        try{
+          await fetch('/.netlify/functions/scan-history', {
+            method:'DELETE', headers:{'Content-Type':'application/json'}, credentials:'include',
+            body: JSON.stringify({id: remoteId})
+          });
+        }catch(err){}
+      } else {
+        try{
+          const existing = await window.storage.get(HISTORY_KEY, false);
+          let onDeviceList = existing && existing.value ? JSON.parse(existing.value) : [];
+          onDeviceList.splice(idx,1);
+          await window.storage.set(HISTORY_KEY, JSON.stringify(onDeviceList), false);
+        }catch(err){}
+      }
+      renderHistory();
+    });
+  });
+}
+
+/* ---------------------------- SCAM LIBRARY DATA ---------------------------- */
+const THREATS = [
+  {title:'Fake Online Stores', what:'Websites built to look like real e-commerce shops that take payment but never ship real goods.', warnings:'Prices far below market rate, brand-new domain, no verifiable contact info, checkout only accepts hard-to-trace payment methods.', how:'Scammers clone product photos and store templates, run ads or social posts, and disappear after collecting payments.', protect:'Search the store name plus "reviews" or "scam" before buying, check for a real physical address and phone number, and prefer payment methods with buyer protection.'},
+  {title:'Fake "90% Off" Deals', what:'Ads and pages advertising extreme, unrealistic discounts on popular products.', warnings:'Discount percentage far exceeds normal retail promotions, countdown timers pressuring immediate purchase, unfamiliar checkout domain.', how:'Scammers use the discount itself as bait, relying on urgency to short-circuit normal skepticism.', protect:'Compare the price against the official retailer, be wary of countdown timers, and check the checkout domain matches the advertised brand.'},
+  {title:'Phishing', what:'Fake login or verification pages designed to steal usernames, passwords, or card details.', warnings:'Link received unexpectedly by email/text, urgent "your account will be suspended" language, domain that looks similar to but isn\'t the real service.', how:'Scammers imitate a trusted brand\'s login page and harvest whatever is typed in.', protect:'Never click login links from unsolicited messages — type the site\'s address directly, and check the domain carefully before entering credentials.'},
+  {title:'Fake Giveaways', what:'Posts or pages claiming you\'ve won a prize, gadget, or gift card.', warnings:'You don\'t remember entering, request for payment to "unlock" the prize, request for sensitive personal or card details.', how:'Scammers use the excitement of "winning" to get victims to pay a fee or hand over personal data.', protect:'Legitimate giveaways never require payment to claim a prize. Verify through the brand\'s official channels.'},
+  {title:'Impersonation Websites', what:'Sites designed to look like a real company, bank, or government agency.', warnings:'Slightly misspelled domain, low-quality copies of logos, requests for information the real organization wouldn\'t ask for online.', how:'Scammers copy branding and design to borrow the trust people place in the real organization.', protect:'Navigate directly to organizations by typing their known address rather than clicking links, and double check the domain spelling.'},
+  {title:'Fake Customer Support', what:'Scammers posing as tech or brand support, often via pop-ups, fake chat widgets, or search ads.', warnings:'Pop-up urging you to "call now," request for remote-access software, request for payment to "fix" a problem.', how:'Scammers create panic about a supposed problem, then charge for fake fixes or install malware via remote access.', protect:'Contact companies only through numbers or chat listed on their official website, never through a pop-up.'},
+  {title:'Investment Scams', what:'Promises of guaranteed or unusually high returns, often involving crypto.', warnings:'"Guaranteed" or "risk-free" returns, pressure to recruit others, unregistered or unverifiable platform.', how:'Scammers use fabricated dashboards showing fake gains to encourage larger deposits before disappearing with funds.', protect:'Be skeptical of guaranteed returns, verify registration with financial regulators, and never invest more than you can afford to lose.'},
+  {title:'Fake Social Media Accounts', what:'Accounts impersonating real brands, celebrities, or people to run scams through DMs or comments.', warnings:'Recently created account, slightly altered handle, unsolicited DM offering deals or opportunities.', how:'Scammers use the borrowed credibility of a familiar name to run giveaways, romance scams, or fake sales.', protect:'Check for verification badges, account age, and follower authenticity before trusting a DM or offer.'},
+  {title:'Fake Delivery Messages', what:'Texts or emails claiming a package couldn\'t be delivered and asking you to click a link or pay a fee.', warnings:'Unexpected delivery notice, generic courier name, link to an unfamiliar domain, request for a small "redelivery fee."', how:'Scammers exploit the routine nature of package deliveries to get quick clicks and card details.', protect:'Track packages only through the courier\'s official app or website, never through a link in a text message.'},
+  {title:'Subscription Traps', what:'"Free trial" offers that are difficult to cancel and quietly bill a card afterward.', warnings:'Card required for a "free" trial, unclear cancellation process, tiny-print recurring billing terms.', how:'Scammers rely on people forgetting to cancel before the trial converts into recurring charges.', protect:'Set a calendar reminder before any free trial ends, and check independent reviews of the cancellation process first.'},
+];
+
+function buildThreatLibrary(){
+  const grid = document.getElementById('threatGrid');
+  grid.innerHTML = THREATS.map((t, i) => `
+    <div class="threat-card" data-threat="${i}">
+      <h4>${escapeHtml(t.title)}</h4>
+      <p>${escapeHtml(t.what)}</p>
+      <div class="threat-detail" id="threat-detail-${i}">
+        <h5>Warning Signs</h5><p>${escapeHtml(t.warnings)}</p>
+        <h5>How Scammers Use It</h5><p>${escapeHtml(t.how)}</p>
+        <h5>How to Protect Yourself</h5><p>${escapeHtml(t.protect)}</p>
+      </div>
+    </div>`).join('');
+  grid.querySelectorAll('.threat-card').forEach(card=>{
+    card.addEventListener('click', ()=>{
+      document.getElementById('threat-detail-'+card.dataset.threat).classList.toggle('open');
+    });
+  });
+}
+buildThreatLibrary();
+
+/* ---------------------------- INIT ---------------------------- */
+showPage('home');
+
+/* =====================================================================
+   AUTH — calls the real Netlify Functions backend (see /netlify/functions).
+   These endpoints only exist once you deploy the backend project and
+   connect a database — see AUTH-SETUP.md. Until then, requests fail
+   gracefully and the user sees a clear message instead of a fake success.
+===================================================================== */
+let currentUser = null;
+let authMode = 'login'; // 'login' | 'signup'
+
+const authModal = document.getElementById('authModal');
+const authForm = document.getElementById('authForm');
+const authError = document.getElementById('authError');
+const authMsg = document.getElementById('authMsg');
+const authEmail = document.getElementById('authEmail');
+const authPassword = document.getElementById('authPassword');
+const authSubmitBtn = document.getElementById('authSubmitBtn');
+const tabLogin = document.getElementById('tabLogin');
+const tabSignup = document.getElementById('tabSignup');
+
+function openAuthModal(){
+  authModal.classList.add('open');
+  authError.style.display = 'none';
+  authMsg.style.display = 'none';
+  authForm.reset();
+  setAuthMode('login');
+}
+function closeAuthModal(){ authModal.classList.remove('open'); }
+function setAuthMode(mode){
+  authMode = mode;
+  tabLogin.classList.toggle('active', mode==='login');
+  tabSignup.classList.toggle('active', mode==='signup');
+  authSubmitBtn.textContent = mode==='login' ? 'Log In' : 'Sign Up';
+  authPassword.setAttribute('autocomplete', mode==='login' ? 'current-password' : 'new-password');
+  authError.style.display = 'none';
+  authMsg.style.display = 'none';
+}
+
+document.getElementById('loginNavBtn').addEventListener('click', ()=>{
+  if (currentUser) { logoutUser(); } else { openAuthModal(); }
+});
+document.getElementById('loginNavBtnMobile').addEventListener('click', ()=>{
+  document.getElementById('mobileMenu').classList.remove('open');
+  if (currentUser) { logoutUser(); } else { openAuthModal(); }
+});
+document.getElementById('authModalClose').addEventListener('click', closeAuthModal);
+authModal.addEventListener('click', (e)=>{ if(e.target===authModal) closeAuthModal(); });
+tabLogin.addEventListener('click', ()=>setAuthMode('login'));
+tabSignup.addEventListener('click', ()=>setAuthMode('signup'));
+
+document.getElementById('forgotLink').addEventListener('click', async (e)=>{
+  e.preventDefault();
+  const email = authEmail.value.trim();
+  if (!email){ showAuthError('Enter your email above first, then click "Forgot password?" again.'); return; }
+  try{
+    const res = await fetch('/.netlify/functions/request-password-reset', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email})
+    });
+    const data = await res.json();
+    if (res.ok){ showAuthMsg(data.message || 'If an account exists for that email, a reset link has been sent.'); }
+    else { showAuthError(data.error || 'Something went wrong.'); }
+  }catch(err){
+    showAuthError('Backend not reachable — the auth server isn\'t deployed/connected yet. See AUTH-SETUP.md.');
+  }
+});
+
+authForm.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  authError.style.display='none'; authMsg.style.display='none';
+  const email = authEmail.value.trim();
+  const password = authPassword.value;
+  const endpoint = authMode==='login' ? 'login' : 'signup';
+  authSubmitBtn.disabled = true;
+  try{
+    const res = await fetch('/.netlify/functions/'+endpoint, {
+      method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include',
+      body: JSON.stringify({email, password})
+    });
+    const data = await res.json();
+    if (res.ok && data.user){
+      currentUser = data.user;
+      updateAuthUI();
+      closeAuthModal();
+      showToast(authMode==='login' ? 'Logged in.' : 'Account created.');
+    } else {
+      showAuthError(data.error || 'Something went wrong.');
+    }
+  }catch(err){
+    showAuthError('Backend not reachable — the auth server isn\'t deployed/connected yet. See AUTH-SETUP.md.');
+  } finally {
+    authSubmitBtn.disabled = false;
+  }
+});
+
+function showAuthError(msg){ authError.textContent = msg; authError.style.display='block'; authMsg.style.display='none'; }
+function showAuthMsg(msg){ authMsg.textContent = msg; authMsg.style.display='block'; authError.style.display='none'; }
+
+async function logoutUser(){
+  try{ await fetch('/.netlify/functions/logout', {method:'POST', credentials:'include'}); }catch(e){}
+  currentUser = null;
+  updateAuthUI();
+  showToast('Logged out.');
+}
+
+function updateAuthUI(){
+  const btn = document.getElementById('loginNavBtn');
+  const btnMobile = document.getElementById('loginNavBtnMobile');
+  if (currentUser){
+    btn.textContent = 'Log Out (' + currentUser.email.split('@')[0] + ')';
+    btnMobile.textContent = 'Log Out (' + currentUser.email + ')';
+  } else {
+    btn.textContent = 'Login';
+    btnMobile.textContent = 'Login';
+  }
+}
+
+// Silently check for an existing session on load. If the backend isn't
+// deployed yet this just fails quietly — no error shown to the user.
+(async function checkSession(){
+  try{
+    const res = await fetch('/.netlify/functions/me', {credentials:'include'});
+    if (res.ok){
+      const data = await res.json();
+      if (data.user){ currentUser = data.user; updateAuthUI(); }
+    }
+  }catch(e){ /* backend not connected yet — fine, stay logged out */ }
+})();
+
+</script>
+</body>
+</html>
