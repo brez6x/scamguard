@@ -24,7 +24,7 @@ async function sendResetEmail(email, rawToken) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: process.env.RESEND_FROM || 'ScamGuard <onboarding@resend.dev>',
+      from: process.env.RESEND_FROM || 'ScamGuard <noreply@scamguard.store>',
       to: [email],
       subject: 'Reset your ScamGuard password',
       html: `
