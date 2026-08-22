@@ -460,7 +460,7 @@ footer{border-top:1px solid var(--border-soft); padding:56px 0 32px; margin-top:
     <div class="card" style="margin-top:40px;">
       <div class="card-title">This preview's scanning engine</div>
       <p style="font-size:14.5px; line-height:1.8; margin-bottom:14px;">This deployed preview runs a real, transparent <strong style="color:var(--text-primary)">URL-structure heuristic engine</strong> entirely in your browser — it looks at the actual link you paste (protocol, hostname, TLD, subdomains, known shortener domains, brand-lookalike patterns, and similar structural signals). It does <strong style="color:var(--text-primary)">not</strong> fabricate domain-age, certificate, or reputation data.</p>
-      <p style="font-size:14.5px; line-height:1.8;">Checks that require a live backend — WHOIS/domain-age, certificate chain inspection, threat-intelligence databases, and following redirect chains — are clearly marked <span class="mono" style="color:var(--text-muted)">Not available</span> in every result until those integrations are connected server-side.</p>
+      <p style="font-size:14.5px; line-height:1.8;">A server-side check also runs on every scan: domain age/registrar via a live RDAP (WHOIS) lookup, safe redirect-chain following (SSRF-guarded — private/internal targets are refused before anything is fetched), and, when configured, a Google Safe Browsing lookup against known malware and phishing URLs. TLS certificate chain inspection is not yet connected. If a live check fails, times out, or isn't configured, that specific field is honestly marked <span class="mono" style="color:var(--text-muted)">Not available</span> with the real reason — never faked.</p>
     </div>
   </div>
 </section>
@@ -737,11 +737,15 @@ footer{border-top:1px solid var(--border-soft); padding:56px 0 32px; margin-top:
    IMPORTANT (read this before extending):
    Every signal produced by `runHeuristicScan()` below is computed
    directly from the URL the person typed — there is no fabricated
-   or random data anywhere in this file. Checks that would require a
-   live backend (WHOIS/domain-age, TLS certificate inspection, threat
-   intelligence databases, following redirect chains) are NOT
-   simulated — they are explicitly reported as unavailable. See
-   ARCHITECTURE.md for how to wire those up server-side.
+   or random data anywhere in this file. `runHeuristicScan()` itself
+   stays client-side/structural only (protocol, hostname, TLD, etc).
+   Live checks that need a real backend — domain age/registrar (RDAP),
+   Google Safe Browsing, and SSRF-guarded redirect-chain following —
+   are fetched from /.netlify/functions/threat-check and merged in by
+   `mergeServerData()` below. TLS certificate chain inspection is not
+   yet connected. Any live check that fails, times out, or (for Safe
+   Browsing) has no API key configured is reported as unavailable
+   with the real reason — never simulated or faked.
 ===================================================================== */
 
 /* ---------------------------- NAV / ROUTING ---------------------------- */
@@ -973,7 +977,9 @@ const SCAN_STEPS = [
   'Validating URL',
   'Inspecting domain',
   'Checking security signals',
+  'Looking up domain age (RDAP)',
   'Checking reputation signals',
+  'Following redirect chain safely',
   'Analyzing website characteristics',
   'Evaluating scam indicators',
   'Calculating risk assessment'
@@ -1005,6 +1011,10 @@ function startScan(){
   const ring = document.getElementById('scanRingProgress');
   const circumference = 327;
 
+  // Kick off the live server-side threat-intelligence check now, in parallel
+  // with the scan animation below, so the two overlap instead of stacking.
+  const serverCheckPromise = result.isPrivate ? Promise.resolve(null) : fetchThreatCheck(result.url.href);
+
   let i = 0;
   function nextStep(){
     if (i > 0){
@@ -1021,17 +1031,154 @@ function startScan(){
       i++;
       setTimeout(nextStep, 340 + Math.random()*220);
     } else {
-      setTimeout(()=> finishScan(result), 260);
+      setTimeout(()=> finishScan(result, serverCheckPromise), 260);
     }
   }
   nextStep();
 }
 
-function finishScan(validated){
-  const scan = runHeuristicScan(validated.url, validated.host, validated.isPrivate);
+// Calls the SSRF-guarded backend for live domain-age (RDAP), Google Safe
+// Browsing, and redirect-chain data. Returns null (never throws) if the
+// backend is unreachable, times out, or errors — callers degrade gracefully
+// and mark those specific fields "Not available" rather than failing the scan.
+async function fetchThreatCheck(url){
+  try{
+    const controller = new AbortController();
+    const t = setTimeout(()=>controller.abort(), 9000);
+    const res = await fetch('/.netlify/functions/threat-check', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ url })
+      , signal: controller.signal
+    });
+    clearTimeout(t);
+    if (!res.ok) return null;
+    return await res.json();
+  }catch(e){
+    return null; // network error, timeout, or function not deployed yet
+  }
+}
+
+async function finishScan(validated, serverCheckPromise){
+  const clientScan = runHeuristicScan(validated.url, validated.host, validated.isPrivate);
+  const serverData = await serverCheckPromise;
+  const scan = mergeServerData(clientScan, serverData, validated);
   renderResults(validated.host, scan);
   saveToHistory(validated.host, scan);
   showPage('results');
+}
+
+/* ---------------------------- MERGE LIVE SERVER-SIDE THREAT INTEL ---------------------------- */
+function safeHostFromUrl(u){
+  try{ return new URL(u).hostname; }catch{ return u; }
+}
+
+function finalizeScore(scan){
+  const weights = {high:26, medium:13, low:6, info:0};
+  let raw = 0;
+  scan.signals.forEach(s => { if(!s.positive) raw += weights[s.severity] || 0; });
+  const positiveCount = scan.signals.filter(s=>s.positive).length;
+  raw -= Math.min(positiveCount * 3, 12);
+  scan.score = Math.max(0, Math.min(100, Math.round(raw)));
+  return scan;
+}
+
+// Takes the client-only heuristic scan and layers on real, live signals from
+// the threat-check backend (domain age/registrar via RDAP, Google Safe
+// Browsing, SSRF-guarded redirect chain). Any field the backend couldn't
+// determine is left honestly marked "Not available" with the real reason.
+function mergeServerData(clientScan, serverData, validated){
+  const scan = {
+    signals: clientScan.signals.slice(),
+    techDetails: Object.assign({}, clientScan.techDetails),
+    serverChecked: !!serverData,
+  };
+
+  const add = (category, title, severity, explanation, evidence, positive=false) => {
+    scan.signals.push({category, title, severity, explanation, evidence, positive});
+  };
+
+  if (!serverData){
+    const why = validated.isPrivate
+      ? 'private/internal address, skipped for safety'
+      : 'live lookup failed, timed out, or the backend isn\'t deployed yet';
+    scan.techDetails['Domain Age'] = 'Not available — ' + why;
+    scan.techDetails['Redirect Chain'] = 'Not available — ' + why;
+    scan.techDetails['Reputation / Threat Intelligence'] = 'Not available — ' + why;
+    return finalizeScore(scan);
+  }
+
+  if (serverData.blocked){
+    add('Security','Private/Internal Target Blocked Before Live Checks','high','ScamGuard\'s server refused to fetch this address because it resolves to a private or internal network location — live checks were skipped for safety.', serverData.reason);
+    scan.techDetails['Domain Age'] = 'Not available — ' + (serverData.reason || 'blocked target');
+    scan.techDetails['Redirect Chain'] = 'Not available — ' + (serverData.reason || 'blocked target');
+    scan.techDetails['Reputation / Threat Intelligence'] = 'Not available — ' + (serverData.reason || 'blocked target');
+    return finalizeScore(scan);
+  }
+
+  // --- Google Safe Browsing ---
+  const sb = serverData.safeBrowsing;
+  if (sb && sb.configured && !sb.error){
+    if (sb.matches && sb.matches.length){
+      const types = [...new Set(sb.matches.map(m=>m.threatType))].join(', ');
+      add('Reputation','Flagged by Google Safe Browsing','high','Google\'s Safe Browsing service has flagged this exact URL as a known threat. This is a live match against Google\'s threat database, not a heuristic guess.', 'Threat type(s): '+types);
+      scan.techDetails['Reputation / Threat Intelligence'] = 'Flagged by Google Safe Browsing: ' + types;
+    } else {
+      add('Reputation','Not Flagged by Google Safe Browsing','info','Google\'s Safe Browsing service, which tracks known malware and phishing pages, has no record of this exact URL as a threat.', null, true);
+      scan.techDetails['Reputation / Threat Intelligence'] = 'No known threats found (Google Safe Browsing)';
+    }
+  } else if (sb && !sb.configured){
+    scan.techDetails['Reputation / Threat Intelligence'] = 'Not available — Google Safe Browsing API key not configured on the server';
+  } else {
+    scan.techDetails['Reputation / Threat Intelligence'] = 'Not available — ' + ((sb && sb.error) || 'live lookup failed or timed out');
+  }
+
+  // --- Domain age / registrar (RDAP) ---
+  const age = serverData.domainAge;
+  if (age && age.available && age.ageDays != null){
+    const years = (age.ageDays/365).toFixed(1);
+    scan.techDetails['Domain Age'] = age.ageDays + ' days old (registered ' + new Date(age.registrationDate).toLocaleDateString() + ')';
+    if (age.registrar) scan.techDetails['Registrar'] = age.registrar;
+    if (age.ageDays < 30){
+      add('Domain','Very Recently Registered Domain','high','This domain was registered in the last 30 days, according to a live RDAP (WHOIS) lookup. Newly created domains are disproportionately used for short-lived scam and phishing campaigns.', 'Registered '+age.ageDays+' day(s) ago');
+    } else if (age.ageDays < 180){
+      add('Domain','Recently Registered Domain','medium','This domain is less than six months old, according to a live RDAP (WHOIS) lookup. New domains are more commonly associated with scam campaigns than established ones.', 'Registered '+age.ageDays+' day(s) ago');
+    } else if (age.ageDays > 730){
+      add('Domain','Established Domain Age','info','This domain has been registered for over '+years+' years according to a live RDAP (WHOIS) lookup, which is more typical of established, legitimate websites.', 'Registered '+age.ageDays+' day(s) ago', true);
+    }
+  } else {
+    scan.techDetails['Domain Age'] = 'Not available — ' + ((age && age.reason) || 'WHOIS/RDAP lookup failed');
+  }
+
+  // --- Redirect chain (SSRF-guarded, followed server-side) ---
+  const chain = serverData.redirectChain;
+  if (Array.isArray(chain) && chain.length){
+    const hops = chain.length - 1;
+    const blockedHop = chain.find(h=>h.blocked);
+    const finalHop = chain[chain.length-1];
+    if (blockedHop){
+      add('Security','Redirect Chain Blocked at Internal Address','high','While following this link\'s redirects, ScamGuard\'s server encountered a redirect pointing to a private or internal network address and stopped for safety — a technique sometimes used to probe internal systems or evade analysis.', blockedHop.url);
+      scan.techDetails['Redirect Chain'] = 'Blocked — a redirect pointed at a private/internal address';
+    } else {
+      const finalHost = safeHostFromUrl(finalHop.url);
+      scan.techDetails['Redirect Chain'] = hops === 0
+        ? 'No redirects — the link goes directly to its destination'
+        : hops + ' redirect' + (hops===1?'':'s') + ' → final destination: ' + finalHost;
+      if (hops >= 3){
+        add('Website Behavior','Long Redirect Chain','medium','This link redirects through '+hops+' intermediate steps (followed live, server-side) before reaching its final destination, which can be used to obscure the real destination or evade detection.', chain.map(c=>safeHostFromUrl(c.url)).join(' → '));
+      }
+      if (hops > 0 && finalHost && finalHost !== validated.host){
+        add('Website Behavior','Redirects to a Different Domain','medium','This link ultimately redirects to a different domain ('+finalHost+') than the one that was entered or shared, confirmed by live redirect-chain following.', validated.host+' → '+finalHost);
+      }
+      if (hops === 0){
+        add('Website Behavior','No Redirects Detected','info','A live, server-side check confirmed the link connects directly to its destination without any intermediate redirects.', null, true);
+      }
+    }
+  } else {
+    scan.techDetails['Redirect Chain'] = 'Not available — live lookup failed or timed out';
+  }
+
+  return finalizeScore(scan);
 }
 
 /* ---------------------------- RESULTS RENDERING ---------------------------- */
@@ -1070,14 +1217,17 @@ function renderResults(host, scan){
     ? `ScamGuard found ${warnings.length} warning sign${warnings.length===1?'':'s'} worth a closer look before you proceed.`
     : `No warning signs were found by the checks currently available.`;
 
-  document.getElementById('confidenceNote').innerHTML =
-    'This score is based on <strong style="color:var(--text-secondary)">URL-structure signals only</strong>. Domain age, certificate, and reputation checks are not connected in this preview — see Technical Details below. Confidence: <strong style="color:var(--text-secondary)">Limited</strong>.';
+  document.getElementById('confidenceNote').innerHTML = scan.serverChecked
+    ? 'This score combines <strong style="color:var(--text-secondary)">URL-structure signals</strong> with <strong style="color:var(--text-secondary)">live domain-age (RDAP), redirect-chain, and reputation checks</strong> run server-side. TLS certificate inspection is not yet connected — see Technical Details below. Confidence: <strong style="color:var(--text-secondary)">Standard</strong>.'
+    : 'This score is based on <strong style="color:var(--text-secondary)">URL-structure signals only</strong> — the live domain-age/reputation/redirect checks did not respond for this scan. See Technical Details below. Confidence: <strong style="color:var(--text-secondary)">Limited</strong>.';
 
   // Explanation
   const topWarnings = warnings.slice().sort((a,b)=>({high:3,medium:2,low:1}[b.severity]-{high:3,medium:2,low:1}[a.severity])).slice(0,2);
   let explain;
   if (!warnings.length){
-    explain = `ScamGuard's available checks did not surface any structural warning signs for this link. This reflects only the signals currently available (URL structure) — domain age, certificate, and reputation data are not yet connected, so this is not a guarantee of legitimacy.`;
+    explain = scan.serverChecked
+      ? `ScamGuard's checks — including live domain-age, redirect-chain, and reputation lookups — did not surface any warning signs for this link. This is not a guarantee of legitimacy, but it reflects a broader set of signals than URL structure alone.`
+      : `ScamGuard's available checks did not surface any structural warning signs for this link. This reflects only the signals currently available (URL structure) — the live domain-age/reputation/redirect checks did not respond for this scan, so this is not a guarantee of legitimacy.`;
   } else {
     const names = topWarnings.map(w=>w.title.toLowerCase()).join(' and ');
     explain = `ScamGuard found ${warnings.length} indicator${warnings.length===1?'':'s'} that deserve caution, most notably ${names}. These signals do not prove fraud on their own, but they increase the overall risk assessment. Review the warning signs below before entering any personal or payment information.`;
