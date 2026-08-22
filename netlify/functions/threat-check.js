@@ -164,11 +164,16 @@ async function checkSafeBrowsing(targetUrl) {
 let rdapBootstrapCache = null; // { services: [...], fetchedAt: number }
 const RDAP_BOOTSTRAP_TTL_MS = 24 * 60 * 60 * 1000; // re-fetch once a day
 
+// Some RDAP servers apply bot-detection that rejects requests with no
+// identifying User-Agent (Node's fetch sends a bare/near-empty default).
+// A descriptive UA is also just good practice for an automated client.
+const RDAP_USER_AGENT = 'ScamGuard/1.0 (+https://scamguard.store; automated RDAP lookup)';
+
 async function getRdapBootstrap(signal) {
   if (rdapBootstrapCache && (Date.now() - rdapBootstrapCache.fetchedAt) < RDAP_BOOTSTRAP_TTL_MS) {
     return rdapBootstrapCache.services;
   }
-  const res = await fetch('https://data.iana.org/rdap/dns.json', { signal });
+  const res = await fetch('https://data.iana.org/rdap/dns.json', { signal, headers: { 'User-Agent': RDAP_USER_AGENT } });
   if (!res.ok) throw new Error(`IANA RDAP bootstrap file returned HTTP ${res.status}`);
   const data = await res.json();
   rdapBootstrapCache = { services: data.services || [], fetchedAt: Date.now() };
@@ -187,9 +192,9 @@ function findRdapBaseUrls(services, tld) {
 }
 
 async function fetchRdapUrl(url, signal) {
-  const res = await fetch(url, { signal, headers: { Accept: 'application/rdap+json' } });
+  const res = await fetch(url, { signal, headers: { Accept: 'application/rdap+json', 'User-Agent': RDAP_USER_AGENT } });
   if (res.status === 404) throw new Error('No RDAP registration record found for this domain.');
-  if (!res.ok) throw new Error(`RDAP lookup returned HTTP ${res.status}`);
+  if (!res.ok) throw new Error(`RDAP lookup returned HTTP ${res.status} from ${new URL(url).hostname}`);
   return res.json();
 }
 
@@ -230,6 +235,8 @@ function toResult(info) {
 
 async function lookupRdap(domain) {
   const tld = domain.split('.').pop();
+  let primaryError = null;
+
   try {
     const info = await withTimeout(async (signal) => {
       const services = await getRdapBootstrap(signal);
@@ -249,6 +256,13 @@ async function lookupRdap(domain) {
               // Referral failed — keep whatever the registry-level lookup had.
             }
           }
+          // Treat "server responded but had no registration date" as a
+          // failure worth falling back from too, not a final answer — some
+          // servers (including the rdap.org redirector) return incomplete
+          // registry-level data even on a 200 OK.
+          if (result.ageDays === null) {
+            throw new Error(`RDAP server at ${new URL(base).hostname} returned a record with no registration date.`);
+          }
           return result;
         } catch (e) {
           lastErr = e;
@@ -258,14 +272,18 @@ async function lookupRdap(domain) {
     }, RDAP_TIMEOUT_MS, 'Domain age (RDAP) lookup timed out.');
     return toResult(info);
   } catch (e) {
-    // Last resort: the rdap.org bootstrap redirector, in case IANA's
-    // bootstrap file or the registry's own RDAP server is unreachable.
-    try {
-      const data = await withTimeout((signal) => fetchRdapDomain('https://rdap.org/', domain, signal), RDAP_TIMEOUT_MS, 'Domain age (RDAP) lookup timed out.');
-      return toResult(extractRegistrationInfo(data));
-    } catch (e2) {
-      return { available: false, reason: e2.message || e.message };
-    }
+    primaryError = e.message;
+  }
+
+  // Last resort: the rdap.org bootstrap redirector, in case IANA's bootstrap
+  // file or the registry's own RDAP server is unreachable or blocked.
+  try {
+    const data = await withTimeout((signal) => fetchRdapDomain('https://rdap.org/', domain, signal), RDAP_TIMEOUT_MS, 'Domain age (RDAP) lookup timed out.');
+    const result = extractRegistrationInfo(data);
+    if (result.ageDays !== null) return toResult(result);
+    return { available: false, reason: `${primaryError} Fallback (rdap.org) also returned no registration date.` };
+  } catch (e2) {
+    return { available: false, reason: `${primaryError} Fallback (rdap.org) also failed: ${e2.message}` };
   }
 }
 
