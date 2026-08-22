@@ -708,6 +708,26 @@ footer{border-top:1px solid var(--border-soft); padding:56px 0 32px; margin-top:
   </div>
 </div>
 
+<div class="modal-overlay" id="resetModal">
+  <div class="modal-card">
+    <button class="modal-close" id="resetModalClose" aria-label="Close">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </button>
+    <div class="modal-tabs">
+      <button class="modal-tab active" style="pointer-events:none;">Set New Password</button>
+    </div>
+    <div class="modal-error" id="resetError"></div>
+    <div class="modal-msg" id="resetMsg"></div>
+    <form id="resetForm">
+      <div class="modal-field">
+        <label>New Password</label>
+        <input type="password" id="resetNewPassword" autocomplete="new-password" required minlength="8">
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" id="resetSubmitBtn">Set New Password</button>
+    </form>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1271,8 +1291,62 @@ function buildThreatLibrary(){
 }
 buildThreatLibrary();
 
+/* =====================================================================
+   PASSWORD RESET LANDING — handles the ?reset=1&token=... link from the
+   password reset email.
+===================================================================== */
+const resetModal = document.getElementById('resetModal');
+const resetForm = document.getElementById('resetForm');
+const resetError = document.getElementById('resetError');
+const resetMsg = document.getElementById('resetMsg');
+const resetNewPassword = document.getElementById('resetNewPassword');
+const resetSubmitBtn = document.getElementById('resetSubmitBtn');
+let pendingResetToken = null;
+
+function checkForResetLink(){
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+  if (params.get('reset') === '1' && token){
+    pendingResetToken = token;
+    resetModal.classList.add('open');
+    // Clean the token out of the visible URL so it isn't sitting in browser history.
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+}
+document.getElementById('resetModalClose').addEventListener('click', ()=>resetModal.classList.remove('open'));
+resetModal.addEventListener('click', (e)=>{ if(e.target===resetModal) resetModal.classList.remove('open'); });
+
+resetForm.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  resetError.style.display='none'; resetMsg.style.display='none';
+  if (!pendingResetToken){ resetError.textContent='Missing reset token.'; resetError.style.display='block'; return; }
+  resetSubmitBtn.disabled = true;
+  try{
+    const res = await fetch('/.netlify/functions/reset-password', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ token: pendingResetToken, newPassword: resetNewPassword.value })
+    });
+    const data = await res.json();
+    if (res.ok){
+      resetMsg.textContent = data.message || 'Password updated — you can now log in.';
+      resetMsg.style.display = 'block';
+      resetForm.reset();
+      setTimeout(()=>{ resetModal.classList.remove('open'); openAuthModal(); }, 1400);
+    } else {
+      resetError.textContent = data.error || 'Something went wrong.';
+      resetError.style.display = 'block';
+    }
+  }catch(err){
+    resetError.textContent = "Backend not reachable — couldn't complete the reset.";
+    resetError.style.display = 'block';
+  } finally {
+    resetSubmitBtn.disabled = false;
+  }
+});
+
 /* ---------------------------- INIT ---------------------------- */
 showPage('home');
+checkForResetLink();
 
 /* =====================================================================
    AUTH — calls the real Netlify Functions backend (see /netlify/functions).

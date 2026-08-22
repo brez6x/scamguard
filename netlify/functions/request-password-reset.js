@@ -2,12 +2,49 @@ const crypto = require('crypto');
 const { getPool, ensureSchema } = require('./_db');
 const { json, isValidEmail, readJsonBody } = require('./_utils');
 
-// IMPORTANT: this endpoint creates a reset token but does NOT send an email yet —
-// no email provider is connected. Wire in an email service (e.g. Resend, SendGrid,
-// Postmark) before relying on this in production: send an email containing a link
-// like https://yoursite.com/reset?token=<rawToken>&email=<email>, then call
-// reset-password.js with that token. Never return the raw token in this response —
-// that would let anyone reset anyone's password.
+// Sends the actual reset email via Resend (https://resend.com). Requires
+// RESEND_API_KEY to be set. SITE_URL should be your live site's URL (e.g.
+// https://scamguard.store) so the link in the email points to the right place —
+// falls back to a relative-looking placeholder if not set, which still works
+// as long as the person opens the email from the same site.
+async function sendResetEmail(email, rawToken) {
+  const siteUrl = process.env.SITE_URL || 'https://scamguard.store';
+  const resetLink = `${siteUrl}/?reset=1&token=${encodeURIComponent(rawToken)}`;
+
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.log('RESEND_API_KEY not set — cannot send reset email. Link would have been:', resetLink);
+    return { sent: false };
+  }
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: process.env.RESEND_FROM || 'ScamGuard <onboarding@resend.dev>',
+      to: [email],
+      subject: 'Reset your ScamGuard password',
+      html: `
+        <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+          <h2 style="color:#0f172a;">Reset your ScamGuard password</h2>
+          <p>We received a request to reset the password for this email address. This link expires in 30 minutes.</p>
+          <p><a href="${resetLink}" style="display:inline-block; background:#3fb8ed; color:#04121A; padding:12px 20px; border-radius:8px; text-decoration:none; font-weight:bold;">Reset Password</a></p>
+          <p style="color:#64748b; font-size:13px;">If you didn't request this, you can safely ignore this email — your password won't change.</p>
+        </div>
+      `,
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    console.error('Resend API error', res.status, errText);
+    return { sent: false };
+  }
+  return { sent: true };
+}
 
 exports.default = async (req) => {
   if (req.method !== 'POST') return json(405, { error: 'Method not allowed' });
@@ -24,6 +61,8 @@ exports.default = async (req) => {
     const result = await pool.query('select id from users where email = $1', [email]);
     const user = result.rows[0];
 
+    // Always the same response whether or not the account exists — never reveal
+    // which emails are registered.
     if (!user) return json(200, genericResponse);
 
     const rawToken = crypto.randomBytes(32).toString('hex');
@@ -35,8 +74,7 @@ exports.default = async (req) => {
       [user.id, tokenHash, expiresAt]
     );
 
-    // TODO: send `rawToken` via email once an email provider is connected.
-    console.log('Password reset token generated for', email, '(email delivery not yet connected)');
+    await sendResetEmail(email, rawToken);
 
     return json(200, genericResponse);
   } catch (err) {
