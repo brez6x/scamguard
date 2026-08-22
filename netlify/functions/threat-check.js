@@ -255,15 +255,24 @@ async function lookupRdap(domain) {
           const data = await fetchRdapDomain(base, domain, signal);
           let result = extractRegistrationInfo(data);
           let referralNote = '';
+          let debugSnippet = '';
           if (result.ageDays === null && result.referralUrl) {
             try {
               const refData = await fetchRdapUrl(result.referralUrl, signal);
               const refResult = extractRegistrationInfo(refData);
               if (refResult.ageDays !== null) result = refResult;
-              else referralNote = ` Registrar referral (${new URL(result.referralUrl).hostname}) also had no registration date.`;
+              else {
+                referralNote = ` Registrar referral (${new URL(result.referralUrl).hostname}) also had no registration date.`;
+                // TEMP DEBUG: show the actual shape of the referral response
+                // so we can see why no "registration" event was found.
+                debugSnippet = ` RAW events=${JSON.stringify(refData.events || null)} eventActions=${JSON.stringify((refData.events || []).map(e => e.eventAction))}`;
+              }
             } catch (refErr) {
               referralNote = ` Registrar referral (${new URL(result.referralUrl).hostname}) failed: ${refErr.message}`;
             }
+          } else if (result.ageDays === null) {
+            // TEMP DEBUG: show the actual shape of the registry response.
+            debugSnippet = ` RAW events=${JSON.stringify(data.events || null)} links=${JSON.stringify(data.links || null)}`;
           }
           // Treat "server responded but had no registration date" as a
           // failure worth falling back from too, not a final answer — some
@@ -271,7 +280,7 @@ async function lookupRdap(domain) {
           // registry-level data even on a 200 OK.
           if (result.ageDays === null) {
             const noReferral = result.referralUrl ? '' : ' No registrar referral link was present to follow.';
-            throw new Error(`RDAP server at ${new URL(base).hostname} returned a record with no registration date.${noReferral}${referralNote}`);
+            throw new Error(`RDAP server at ${new URL(base).hostname} returned a record with no registration date.${noReferral}${referralNote}${debugSnippet}`);
           }
           return result;
         } catch (e) {
