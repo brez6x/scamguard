@@ -213,8 +213,8 @@ function extractRegistrationInfo(data) {
     registrarName = (fnEntry && fnEntry[3]) || registrarEntity.handle || null;
   }
   let ageDays = null;
-  if (registrationEvent && registrationEvent.date) {
-    ageDays = Math.floor((Date.now() - new Date(registrationEvent.date).getTime()) / 86400000);
+  if (registrationEvent && registrationEvent.eventDate) {
+    ageDays = Math.floor((Date.now() - new Date(registrationEvent.eventDate).getTime()) / 86400000);
   }
   // Thin-registry TLDs (like .com/.net at Verisign) don't include a
   // registration date at the registry level at all — the real record lives
@@ -227,7 +227,7 @@ function extractRegistrationInfo(data) {
     const referral = (pool || []).find((l) => l && l.rel === 'related' && /rdap/i.test(l.href || ''));
     if (referral) { referralUrl = referral.href; break; }
   }
-  return { registrationDate: registrationEvent ? registrationEvent.date : null, ageDays, registrar: registrarName, referralUrl };
+  return { registrationDate: registrationEvent ? registrationEvent.eventDate : null, ageDays, registrar: registrarName, referralUrl };
 }
 
 function toResult(info) {
@@ -255,24 +255,15 @@ async function lookupRdap(domain) {
           const data = await fetchRdapDomain(base, domain, signal);
           let result = extractRegistrationInfo(data);
           let referralNote = '';
-          let debugSnippet = '';
           if (result.ageDays === null && result.referralUrl) {
             try {
               const refData = await fetchRdapUrl(result.referralUrl, signal);
               const refResult = extractRegistrationInfo(refData);
               if (refResult.ageDays !== null) result = refResult;
-              else {
-                referralNote = ` Registrar referral (${new URL(result.referralUrl).hostname}) also had no registration date.`;
-                // TEMP DEBUG: show the actual shape of the referral response
-                // so we can see why no "registration" event was found.
-                debugSnippet = ` RAW events=${JSON.stringify(refData.events || null)} eventActions=${JSON.stringify((refData.events || []).map(e => e.eventAction))}`;
-              }
+              else referralNote = ` Registrar referral (${new URL(result.referralUrl).hostname}) also had no registration date.`;
             } catch (refErr) {
               referralNote = ` Registrar referral (${new URL(result.referralUrl).hostname}) failed: ${refErr.message}`;
             }
-          } else if (result.ageDays === null) {
-            // TEMP DEBUG: show the actual shape of the registry response.
-            debugSnippet = ` RAW events=${JSON.stringify(data.events || null)} links=${JSON.stringify(data.links || null)}`;
           }
           // Treat "server responded but had no registration date" as a
           // failure worth falling back from too, not a final answer — some
@@ -280,7 +271,7 @@ async function lookupRdap(domain) {
           // registry-level data even on a 200 OK.
           if (result.ageDays === null) {
             const noReferral = result.referralUrl ? '' : ' No registrar referral link was present to follow.';
-            throw new Error(`RDAP server at ${new URL(base).hostname} returned a record with no registration date.${noReferral}${referralNote}${debugSnippet}`);
+            throw new Error(`RDAP server at ${new URL(base).hostname} returned a record with no registration date.${noReferral}${referralNote}`);
           }
           return result;
         } catch (e) {
