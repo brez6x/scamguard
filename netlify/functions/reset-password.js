@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
-const { getPool } = require('./_db');
+const { getPool, ensureSchema } = require('./_db');
 const { json } = require('./_utils');
 
 exports.handler = async (event) => {
@@ -16,6 +16,7 @@ exports.handler = async (event) => {
   const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
 
   try {
+    await ensureSchema();
     const pool = getPool();
     const result = await pool.query(
       `select id, user_id, expires_at, used from password_resets where token_hash = $1`,

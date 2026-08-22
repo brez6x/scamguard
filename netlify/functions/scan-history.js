@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const { getPool } = require('./_db');
+const { getPool, ensureSchema } = require('./_db');
 const { json, getSessionToken } = require('./_utils');
 
 function requireUser(event) {
@@ -12,6 +12,7 @@ exports.handler = async (event) => {
   const user = requireUser(event);
   if (!user) return json(401, { error: 'Not logged in.' });
 
+  await ensureSchema();
   const pool = getPool();
 
   if (event.httpMethod === 'GET') {

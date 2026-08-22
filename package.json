@@ -4,6 +4,7 @@
   "private": true,
   "description": "Netlify Functions backend for ScamGuard authentication",
   "dependencies": {
+    "@netlify/database": "*",
     "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.11.5",

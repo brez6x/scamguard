@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { getPool } = require('./_db');
+const { getPool, ensureSchema } = require('./_db');
 const { json, isValidEmail } = require('./_utils');
 
 // IMPORTANT: this endpoint creates a reset token but does NOT send an email yet —
@@ -21,6 +21,7 @@ exports.handler = async (event) => {
   const genericResponse = { message: 'If an account exists for that email, a reset link has been sent.' };
 
   try {
+    await ensureSchema();
     const pool = getPool();
     const result = await pool.query('select id from users where email = $1', [email]);
     const user = result.rows[0];

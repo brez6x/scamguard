@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { getPool } = require('./_db');
+const { getPool, ensureSchema } = require('./_db');
 const { json, isValidEmail, sessionCookie } = require('./_utils');
 
 exports.handler = async (event) => {
@@ -16,6 +16,7 @@ exports.handler = async (event) => {
   if (!process.env.JWT_SECRET) return json(500, { error: 'Server is not configured (missing JWT_SECRET).' });
 
   try {
+    await ensureSchema();
     const pool = getPool();
     const result = await pool.query('select id, email, password_hash from users where email = $1', [email]);
     const user = result.rows[0];
