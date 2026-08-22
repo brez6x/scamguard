@@ -1,14 +1,12 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { getPool, ensureSchema } = require('./_db');
-const { json, isValidEmail, sessionCookie } = require('./_utils');
+const { json, isValidEmail, sessionCookie, readJsonBody } = require('./_utils');
 
-exports.handler = async (event) => {
-  if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' });
+exports.default = async (req) => {
+  if (req.method !== 'POST') return json(405, { error: 'Method not allowed' });
 
-  let body;
-  try { body = JSON.parse(event.body || '{}'); } catch { return json(400, { error: 'Invalid request body.' }); }
-
+  const body = await readJsonBody(req);
   const email = (body.email || '').trim().toLowerCase();
   const password = body.password || '';
 

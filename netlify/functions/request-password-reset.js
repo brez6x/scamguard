@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const { getPool, ensureSchema } = require('./_db');
-const { json, isValidEmail } = require('./_utils');
+const { json, isValidEmail, readJsonBody } = require('./_utils');
 
 // IMPORTANT: this endpoint creates a reset token but does NOT send an email yet —
 // no email provider is connected. Wire in an email service (e.g. Resend, SendGrid,
@@ -9,12 +9,10 @@ const { json, isValidEmail } = require('./_utils');
 // reset-password.js with that token. Never return the raw token in this response —
 // that would let anyone reset anyone's password.
 
-exports.handler = async (event) => {
-  if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' });
+exports.default = async (req) => {
+  if (req.method !== 'POST') return json(405, { error: 'Method not allowed' });
 
-  let body;
-  try { body = JSON.parse(event.body || '{}'); } catch { return json(400, { error: 'Invalid request body.' }); }
-
+  const body = await readJsonBody(req);
   const email = (body.email || '').trim().toLowerCase();
   if (!isValidEmail(email)) return json(400, { error: 'Enter a valid email address.' });
 
@@ -26,8 +24,6 @@ exports.handler = async (event) => {
     const result = await pool.query('select id from users where email = $1', [email]);
     const user = result.rows[0];
 
-    // Always return the same generic response whether or not the account exists,
-    // so this endpoint can't be used to check which emails are registered.
     if (!user) return json(200, genericResponse);
 
     const rawToken = crypto.randomBytes(32).toString('hex');
@@ -40,7 +36,6 @@ exports.handler = async (event) => {
     );
 
     // TODO: send `rawToken` via email once an email provider is connected.
-    // Example: await sendEmail(email, `Reset your ScamGuard password: https://yoursite.com/reset?token=${rawToken}`);
     console.log('Password reset token generated for', email, '(email delivery not yet connected)');
 
     return json(200, genericResponse);

@@ -1,14 +1,12 @@
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const { getPool, ensureSchema } = require('./_db');
-const { json } = require('./_utils');
+const { json, readJsonBody } = require('./_utils');
 
-exports.handler = async (event) => {
-  if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' });
+exports.default = async (req) => {
+  if (req.method !== 'POST') return json(405, { error: 'Method not allowed' });
 
-  let body;
-  try { body = JSON.parse(event.body || '{}'); } catch { return json(400, { error: 'Invalid request body.' }); }
-
+  const body = await readJsonBody(req);
   const { token, newPassword } = body;
   if (!token || !newPassword) return json(400, { error: 'Missing token or new password.' });
   if (newPassword.length < 8) return json(400, { error: 'Password must be at least 8 characters.' });

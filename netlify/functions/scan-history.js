@@ -1,21 +1,21 @@
 const jwt = require('jsonwebtoken');
 const { getPool, ensureSchema } = require('./_db');
-const { json, getSessionToken } = require('./_utils');
+const { json, getSessionToken, readJsonBody } = require('./_utils');
 
-function requireUser(event) {
-  const token = getSessionToken(event);
+function requireUser(req) {
+  const token = getSessionToken(req);
   if (!token || !process.env.JWT_SECRET) return null;
   try { return jwt.verify(token, process.env.JWT_SECRET); } catch { return null; }
 }
 
-exports.handler = async (event) => {
-  const user = requireUser(event);
+exports.default = async (req) => {
+  const user = requireUser(req);
   if (!user) return json(401, { error: 'Not logged in.' });
 
   await ensureSchema();
   const pool = getPool();
 
-  if (event.httpMethod === 'GET') {
+  if (req.method === 'GET') {
     try {
       const result = await pool.query(
         'select id, domain, score, risk_level, warnings, positives, created_at from scans where user_id = $1 order by created_at desc limit 50',
@@ -28,9 +28,8 @@ exports.handler = async (event) => {
     }
   }
 
-  if (event.httpMethod === 'POST') {
-    let body;
-    try { body = JSON.parse(event.body || '{}'); } catch { return json(400, { error: 'Invalid request body.' }); }
+  if (req.method === 'POST') {
+    const body = await readJsonBody(req);
     const { domain, score, riskLevel, warnings, positives } = body;
     if (!domain || typeof score !== 'number' || !riskLevel) return json(400, { error: 'Missing scan data.' });
     try {
@@ -45,9 +44,8 @@ exports.handler = async (event) => {
     }
   }
 
-  if (event.httpMethod === 'DELETE') {
-    let body;
-    try { body = JSON.parse(event.body || '{}'); } catch { return json(400, { error: 'Invalid request body.' }); }
+  if (req.method === 'DELETE') {
+    const body = await readJsonBody(req);
     if (!body.id) return json(400, { error: 'Missing scan id.' });
     try {
       await pool.query('delete from scans where id = $1 and user_id = $2', [body.id, user.sub]);

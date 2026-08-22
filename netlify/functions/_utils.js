@@ -1,11 +1,10 @@
 const cookie = require('cookie');
 
-function json(statusCode, body, extraHeaders = {}) {
-  return {
-    statusCode,
+function json(status, body, extraHeaders = {}) {
+  return new Response(JSON.stringify(body), {
+    status,
     headers: { 'Content-Type': 'application/json', ...extraHeaders },
-    body: JSON.stringify(body),
-  };
+  });
 }
 
 function isValidEmail(email) {
@@ -32,10 +31,18 @@ function clearSessionCookie() {
   });
 }
 
-function getSessionToken(event) {
-  const header = event.headers.cookie || event.headers.Cookie || '';
+function getSessionToken(req) {
+  const header = req.headers.get('cookie') || '';
   const parsed = cookie.parse(header);
   return parsed.sg_session || null;
 }
 
-module.exports = { json, isValidEmail, sessionCookie, clearSessionCookie, getSessionToken };
+async function readJsonBody(req) {
+  try {
+    return await req.json();
+  } catch {
+    return {};
+  }
+}
+
+module.exports = { json, isValidEmail, sessionCookie, clearSessionCookie, getSessionToken, readJsonBody };
