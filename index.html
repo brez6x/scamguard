@@ -311,8 +311,8 @@ footer{border-top:1px solid var(--border-soft); padding:56px 0 32px; margin-top:
 .modal-tab.active{background:var(--accent-cyan-dim); color:var(--accent-cyan);}
 .modal-field{margin-bottom:14px;}
 .modal-field label{display:block; font-size:12px; color:var(--text-muted); font-family:var(--font-mono); text-transform:uppercase; letter-spacing:.06em; margin-bottom:7px;}
-.modal-field input{width:100%; background:var(--bg-void); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px 14px; color:var(--text-primary); font-size:14.5px;}
-.modal-field input:focus{border-color:var(--accent-cyan); outline:none; box-shadow:0 0 0 3px var(--accent-cyan-dim);}
+.modal-field input, .modal-field textarea{width:100%; background:var(--bg-void); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px 14px; color:var(--text-primary); font-size:14.5px; font-family:inherit; resize:vertical;}
+.modal-field input:focus, .modal-field textarea:focus{border-color:var(--accent-cyan); outline:none; box-shadow:0 0 0 3px var(--accent-cyan-dim);}
 .modal-error{color:var(--risk-vhigh); font-size:13px; margin-bottom:12px; display:none;}
 .modal-msg{color:var(--risk-vlow); font-size:13px; margin-bottom:12px; display:none;}
 .modal-close{position:absolute; top:18px; right:18px; background:none; border:none; color:var(--text-muted); padding:4px;}
@@ -684,7 +684,7 @@ footer{border-top:1px solid var(--border-soft); padding:56px 0 32px; margin-top:
       </div>
       <div class="footer-col"><h5>Product</h5><a href="#" data-nav="home">Scanner</a><a href="#" data-nav="pricing">Pricing</a><a href="#" data-nav="history">Scan History</a></div>
       <div class="footer-col"><h5>Company</h5><a href="#" data-nav="about">About</a><a href="#" data-nav="how">How It Works</a></div>
-      <div class="footer-col"><h5>Resources</h5><a href="#" data-nav="threats">Scam Library</a><a href="#" data-toast="Reporting isn't connected in this preview yet.">Report a Website</a></div>
+      <div class="footer-col"><h5>Resources</h5><a href="#" data-nav="threats">Scam Library</a><a href="#" id="reportLink">Report a Website</a></div>
       <div class="footer-col"><h5>Legal</h5><a href="#" data-nav="privacy">Privacy Policy</a><a href="#" data-toast="Placeholder for this preview.">Terms</a><a href="#" data-toast="Placeholder for this preview.">Contact</a></div>
     </div>
     <p class="footer-disclaimer">ScamGuard is an automated risk-assessment service. Results are informational and do not guarantee website legitimacy or fraud.</p>
@@ -735,6 +735,34 @@ footer{border-top:1px solid var(--border-soft); padding:56px 0 32px; margin-top:
         <input type="password" id="resetNewPassword" autocomplete="new-password" required minlength="8">
       </div>
       <button type="submit" class="btn btn-primary btn-block" id="resetSubmitBtn">Set New Password</button>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="reportModal">
+  <div class="modal-card">
+    <button class="modal-close" id="reportModalClose" aria-label="Close">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </button>
+    <div class="modal-tabs">
+      <button class="modal-tab active" style="pointer-events:none;">Report a Website</button>
+    </div>
+    <div class="modal-error" id="reportError"></div>
+    <div class="modal-msg" id="reportMsg"></div>
+    <form id="reportForm">
+      <div class="modal-field">
+        <label>Website address</label>
+        <input type="text" id="reportUrl" placeholder="e.g. suspicious-site.com" required>
+      </div>
+      <div class="modal-field">
+        <label>Why are you reporting it? (optional)</label>
+        <textarea id="reportReason" rows="3" maxlength="1000" placeholder="What happened?"></textarea>
+      </div>
+      <div class="modal-field">
+        <label>Your email (optional, in case we follow up)</label>
+        <input type="email" id="reportEmail" autocomplete="email">
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" id="reportSubmitBtn">Submit Report</button>
     </form>
   </div>
 </div>
@@ -1502,6 +1530,61 @@ resetForm.addEventListener('submit', async (e)=>{
     resetError.style.display = 'block';
   } finally {
     resetSubmitBtn.disabled = false;
+  }
+});
+
+/* =====================================================================
+   REPORT A WEBSITE — saves reports to the real backend (see
+   /netlify/functions/report-website.js). Same pattern as the auth forms:
+   fails gracefully with a clear message if the backend isn't reachable.
+===================================================================== */
+const reportModal = document.getElementById('reportModal');
+const reportForm = document.getElementById('reportForm');
+const reportError = document.getElementById('reportError');
+const reportMsg = document.getElementById('reportMsg');
+const reportUrl = document.getElementById('reportUrl');
+const reportReason = document.getElementById('reportReason');
+const reportEmail = document.getElementById('reportEmail');
+const reportSubmitBtn = document.getElementById('reportSubmitBtn');
+
+function openReportModal(prefillUrl){
+  reportError.style.display='none'; reportMsg.style.display='none';
+  if (prefillUrl) reportUrl.value = prefillUrl;
+  reportModal.classList.add('open');
+}
+function closeReportModal(){ reportModal.classList.remove('open'); }
+
+document.getElementById('reportLink').addEventListener('click', (e)=>{
+  e.preventDefault();
+  openReportModal();
+});
+document.getElementById('reportModalClose').addEventListener('click', closeReportModal);
+reportModal.addEventListener('click', (e)=>{ if(e.target===reportModal) closeReportModal(); });
+
+reportForm.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  reportError.style.display='none'; reportMsg.style.display='none';
+  reportSubmitBtn.disabled = true;
+  try{
+    const res = await fetch('/.netlify/functions/report-website', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ url: reportUrl.value, reason: reportReason.value, email: reportEmail.value })
+    });
+    const data = await res.json();
+    if (res.ok){
+      reportMsg.textContent = data.message || 'Thanks — your report was submitted.';
+      reportMsg.style.display = 'block';
+      reportForm.reset();
+      setTimeout(closeReportModal, 1600);
+    } else {
+      reportError.textContent = data.error || 'Something went wrong.';
+      reportError.style.display = 'block';
+    }
+  }catch(err){
+    reportError.textContent = "Backend not reachable — couldn't submit the report. Please try again in a moment.";
+    reportError.style.display = 'block';
+  } finally {
+    reportSubmitBtn.disabled = false;
   }
 });
 

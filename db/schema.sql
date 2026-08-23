@@ -41,3 +41,13 @@ create table if not exists rate_limits (
   count int not null default 0
 );
 
+create table if not exists reports (
+  id uuid primary key default gen_random_uuid(),
+  url text not null,
+  reason text,
+  reporter_email text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_reports_created on reports(created_at desc);
+
