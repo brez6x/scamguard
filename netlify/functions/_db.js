@@ -82,6 +82,12 @@ function ensureSchema() {
       );
 
       create index if not exists idx_scans_user on scans(user_id, created_at desc);
+
+      create table if not exists rate_limits (
+        bucket_key text primary key,
+        window_start timestamptz not null default now(),
+        count int not null default 0
+      );
     `).catch((err) => {
       schemaReady = null; // allow retry on next request if this failed
       throw err;

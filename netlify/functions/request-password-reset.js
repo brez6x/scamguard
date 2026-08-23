@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const { getPool, ensureSchema } = require('./_db');
 const { json, isValidEmail, readJsonBody } = require('./_utils');
+const { getClientIp, rateLimitOrNull } = require('./_rateLimit');
 
 // Sends the actual reset email via Resend (https://resend.com). Requires
 // RESEND_API_KEY to be set. SITE_URL should be your live site's URL (e.g.
@@ -58,6 +59,17 @@ exports.default = async (req) => {
   try {
     await ensureSchema();
     const pool = getPool();
+
+    const ip = getClientIp(req);
+    const limited = await rateLimitOrNull(
+      pool,
+      `pwreset-request:${ip}`,
+      5,
+      60 * 60,
+      'Too many password reset requests. Please wait a while and try again.'
+    );
+    if (limited) return limited;
+
     const result = await pool.query('select id from users where email = $1', [email]);
     const user = result.rows[0];
 

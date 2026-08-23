@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { getPool, ensureSchema } = require('./_db');
 const { json, isValidEmail, sessionCookie, readJsonBody } = require('./_utils');
+const { getClientIp, rateLimitOrNull } = require('./_rateLimit');
 
 exports.default = async (req) => {
   if (req.method !== 'POST') return json(405, { error: 'Method not allowed' });
@@ -16,6 +17,17 @@ exports.default = async (req) => {
   try {
     await ensureSchema();
     const pool = getPool();
+
+    const ip = getClientIp(req);
+    const limited = await rateLimitOrNull(
+      pool,
+      `login:${ip}`,
+      10,
+      10 * 60,
+      'Too many login attempts. Please wait a few minutes and try again.'
+    );
+    if (limited) return limited;
+
     const result = await pool.query('select id, email, password_hash from users where email = $1', [email]);
     const user = result.rows[0];
 
