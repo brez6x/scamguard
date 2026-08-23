@@ -64,7 +64,12 @@ body::before{
   position:fixed; inset:0;
   background:
     radial-gradient(900px 500px at 15% -10%, rgba(76,211,255,.08), transparent 60%),
-    radial-gradient(700px 500px at 100% 10%, rgba(76,124,250,.08), transparent 55%);
+    radial-gradient(700px 500px at 100% 10%, rgba(76,124,250,.08), transparent 55%),
+    linear-gradient(rgba(76,211,255,.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(76,211,255,.035) 1px, transparent 1px);
+  background-size:auto, auto, 42px 42px, 42px 42px;
+  -webkit-mask-image:radial-gradient(1200px 900px at 50% 0%, #000 0%, transparent 75%);
+  mask-image:radial-gradient(1200px 900px at 50% 0%, #000 0%, transparent 75%);
   pointer-events:none;
   z-index:0;
 }
@@ -157,6 +162,11 @@ main{position:relative; z-index:1;}
 
 /* Signature: radar/signal visual */
 .radar-wrap{display:flex; align-items:center; justify-content:center; position:relative;}
+.radar-wrap::before{
+  content:""; position:absolute; inset:-10%; z-index:-1;
+  background:radial-gradient(closest-side, rgba(76,211,255,.16), rgba(76,124,250,.06) 55%, transparent 75%);
+  filter:blur(6px);
+}
 .radar{width:100%; max-width:420px; aspect-ratio:1;}
 .radar-ring{fill:none; stroke:var(--border); stroke-width:1;}
 .radar-sweep-group{transform-origin:210px 210px; animation:spin 6s linear infinite;}
@@ -179,8 +189,9 @@ main{position:relative; z-index:1;}
   background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius-md);
   padding:22px; transition:border-color .18s, transform .18s;
 }
-.check-card:hover{border-color:var(--accent-cyan-line); transform:translateY(-2px);}
-.check-icon{width:38px; height:38px; border-radius:10px; background:var(--accent-cyan-dim); display:flex; align-items:center; justify-content:center; margin-bottom:14px; color:var(--accent-cyan);}
+.check-card:hover{border-color:var(--accent-cyan-line); transform:translateY(-2px); box-shadow:0 16px 32px -20px rgba(76,211,255,.35);}
+.check-icon{width:38px; height:38px; border-radius:10px; background:var(--accent-cyan-dim); border:1px solid var(--accent-cyan-line); display:flex; align-items:center; justify-content:center; margin-bottom:14px; color:var(--accent-cyan); transition:box-shadow .18s;}
+.check-card:hover .check-icon{box-shadow:0 0 0 4px var(--accent-cyan-dim);}
 .check-card h4{font-size:15.5px; margin-bottom:6px;}
 .check-card p{font-size:13.5px; line-height:1.5;}
 
@@ -255,15 +266,16 @@ main{position:relative; z-index:1;}
 .price-amount{font-family:var(--font-display); font-size:38px; margin-bottom:4px;}
 .price-amount span{font-size:14px; color:var(--text-muted); font-family:var(--font-body);}
 .price-feats{list-style:none; margin:22px 0 26px; padding:0; display:flex; flex-direction:column; gap:11px; flex:1;}
-.price-feats li{font-size:13.5px; color:var(--text-secondary); display:flex; gap:9px; align-items:flex-start;}
+.price-feats li{font-size:13.5px; color:var(--text-secondary); display:flex; gap:9px; align-items:flex-start; flex-wrap:wrap; row-gap:6px;}
 .price-feats li svg{flex:none; margin-top:2px;}
 .price-feats li.future{color:var(--text-muted);}
-.future-tag{font-family:var(--font-mono); font-size:9.5px; color:var(--text-muted); border:1px solid var(--border); padding:1px 6px; border-radius:4px; margin-left:6px;}
+.future-tag{font-family:var(--font-mono); font-size:9.5px; color:var(--accent-cyan); background:var(--accent-cyan-dim); border:1px solid var(--accent-cyan-line); padding:2px 7px; border-radius:999px; margin-left:6px; text-transform:uppercase; letter-spacing:.04em; white-space:nowrap; flex-shrink:0;}
 
 /* ============================= THREATS / LIBRARY ============================= */
 .threat-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:16px;}
 .threat-card{background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:22px; cursor:pointer; transition:.18s;}
-.threat-card:hover{border-color:var(--accent-cyan-line);}
+.threat-card:hover{border-color:var(--accent-cyan-line); box-shadow:0 16px 32px -22px rgba(76,211,255,.35);}
+.threat-icon{width:34px; height:34px; border-radius:9px; background:var(--accent-cyan-dim); border:1px solid var(--accent-cyan-line); display:flex; align-items:center; justify-content:center; margin-bottom:12px; color:var(--accent-cyan);}
 .threat-card h4{font-size:16px; margin-bottom:8px;}
 .threat-card p{font-size:13.5px;}
 .threat-detail{display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--border-soft);}
@@ -276,6 +288,9 @@ main{position:relative; z-index:1;}
 .about-copy{max-width:680px; font-size:16px; line-height:1.8; color:var(--text-secondary);}
 .about-copy p{margin-bottom:18px; font-size:inherit; color:inherit;}
 .about-copy strong{color:var(--text-primary);}
+.pillar-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:40px;}
+.pillar-grid h4{font-size:15.5px; margin-bottom:8px;}
+.pillar-grid p{font-size:13.5px; line-height:1.55;}
 
 /* ============================= HISTORY ============================= */
 .history-item{display:flex; align-items:center; justify-content:space-between; padding:14px 4px; border-bottom:1px solid var(--border-soft); cursor:pointer;}
@@ -332,6 +347,7 @@ footer{border-top:1px solid var(--border-soft); padding:56px 0 32px; margin-top:
   .hero h1{font-size:38px;}
   .grid-6{grid-template-columns:repeat(2,1fr);}
   .steps-4{grid-template-columns:repeat(2,1fr);}
+  .pillar-grid{grid-template-columns:1fr;}
   .pricing-grid{grid-template-columns:1fr;}
   .risk-card{grid-template-columns:1fr;}
   .footer-grid{grid-template-columns:repeat(2,1fr);}
@@ -469,8 +485,8 @@ footer{border-top:1px solid var(--border-soft); padding:56px 0 32px; margin-top:
     </div>
 
     <div class="card" style="margin-top:40px;">
-      <div class="card-title">This preview's scanning engine</div>
-      <p style="font-size:14.5px; line-height:1.8; margin-bottom:14px;">This deployed preview runs a real, transparent <strong style="color:var(--text-primary)">URL-structure heuristic engine</strong> entirely in your browser — it looks at the actual link you paste (protocol, hostname, TLD, subdomains, known shortener domains, brand-lookalike patterns, and similar structural signals). It does <strong style="color:var(--text-primary)">not</strong> fabricate domain-age, certificate, or reputation data.</p>
+      <div class="card-title">ScamGuard's scanning engine</div>
+      <p style="font-size:14.5px; line-height:1.8; margin-bottom:14px;">ScamGuard runs a real, transparent <strong style="color:var(--text-primary)">URL-structure heuristic engine</strong> entirely in your browser — it looks at the actual link you paste (protocol, hostname, TLD, subdomains, known shortener domains, brand-lookalike patterns, and similar structural signals). It does <strong style="color:var(--text-primary)">not</strong> fabricate domain-age, certificate, or reputation data.</p>
       <p style="font-size:14.5px; line-height:1.8;">A server-side check also runs on every scan: domain age/registrar via a live RDAP (WHOIS) lookup, safe redirect-chain following (SSRF-guarded — private/internal targets are refused before anything is fetched), and, when configured, a Google Safe Browsing lookup against known malware and phishing URLs. TLS certificate chain inspection is not yet connected. If a live check fails, times out, or isn't configured, that specific field is honestly marked <span class="mono" style="color:var(--text-muted)">Not available</span> with the real reason — never faked.</p>
     </div>
   </div>
@@ -516,21 +532,21 @@ footer{border-top:1px solid var(--border-soft); padding:56px 0 32px; margin-top:
           <li>✓ 100 scans / month</li>
           <li>✓ Full technical details</li>
           <li>✓ Extended scan history</li>
-          <li class="future">✓ Watchlist with alerts<span class="future-tag">NOT CONNECTED</span></li>
-          <li class="future">✓ Advanced reputation checks<span class="future-tag">NOT CONNECTED</span></li>
+          <li class="future">✓ Watchlist with alerts<span class="future-tag">Coming soon</span></li>
+          <li class="future">✓ Advanced reputation checks<span class="future-tag">Coming soon</span></li>
         </ul>
-        <button class="btn btn-primary btn-block" data-toast="Payments aren't connected in this preview yet.">Upgrade to Pro</button>
+        <button class="btn btn-primary btn-block" data-toast="Pro plans are launching soon — thanks for your interest!">Notify Me at Launch</button>
       </div>
       <div class="price-card">
         <div class="price-plan">Business</div>
         <div class="price-amount">$29.99<span>/month</span></div>
         <ul class="price-feats">
-          <li class="future">✓ 1,000 scans / month<span class="future-tag">FUTURE</span></li>
-          <li class="future">✓ Bulk URL &amp; CSV scanning<span class="future-tag">FUTURE</span></li>
-          <li class="future">✓ API access<span class="future-tag">FUTURE</span></li>
-          <li class="future">✓ Team members<span class="future-tag">FUTURE</span></li>
+          <li class="future">✓ 1,000 scans / month<span class="future-tag">Coming soon</span></li>
+          <li class="future">✓ Bulk URL &amp; CSV scanning<span class="future-tag">Coming soon</span></li>
+          <li class="future">✓ API access<span class="future-tag">Coming soon</span></li>
+          <li class="future">✓ Team members<span class="future-tag">Coming soon</span></li>
         </ul>
-        <button class="btn btn-ghost btn-block" data-toast="Business plan isn't available yet — architecture is documented for a future release.">Contact sales</button>
+        <button class="btn btn-ghost btn-block" data-toast="Business plans are launching soon — thanks for your interest!">Notify Me at Launch</button>
       </div>
     </div>
   </div>
@@ -547,6 +563,24 @@ footer{border-top:1px solid var(--border-soft); padding:56px 0 32px; margin-top:
       <p>Fake online stores, phishing pages, and impersonation sites are built to look convincing in the seconds before someone enters a password or a card number. <strong>ScamGuard exists to slow that moment down</strong> — giving people a clear, evidence-based second opinion before they click, sign in, or pay.</p>
       <p>ScamGuard doesn't claim to catch every scam or guarantee that any website is safe. It's built to be honest about what it actually knows: every signal shown in a report is one ScamGuard's checks genuinely found, and every check it couldn't run is labeled as unavailable rather than guessed at.</p>
       <p>The goal is simple: help ordinary people make a more informed decision, in plain language, before something goes wrong.</p>
+    </div>
+
+    <div class="pillar-grid">
+      <div class="step-card">
+        <div class="check-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 12h4l2-7 4 14 2-7h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <h4>Evidence-based</h4>
+        <p>Every score is built from real, checkable signals — domain age, redirect behavior, known threat databases — never a guess dressed up as an answer.</p>
+      </div>
+      <div class="step-card">
+        <div class="check-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="3" stroke="currentColor" stroke-width="1.7"/><path d="M9 12h6M9 8h6M9 16h3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></div>
+        <h4>Radically transparent</h4>
+        <p>Every technical detail behind a score is visible if you want to see it — nothing about how a site is judged happens in a black box.</p>
+      </div>
+      <div class="step-card">
+        <div class="check-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="M12 8v5M12 16h.01" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg></div>
+        <h4>Honest about limits</h4>
+        <p>When a check can't run or a signal isn't available, ScamGuard says so plainly — instead of quietly filling the gap with something fabricated.</p>
+      </div>
     </div>
   </div>
 </section>
@@ -572,18 +606,20 @@ footer{border-top:1px solid var(--border-soft); padding:56px 0 32px; margin-top:
     <div class="section-head">
       <div class="eyebrow">Legal</div>
       <h2>Privacy Policy</h2>
-      <p>Last updated August 21, 2026. Plain-language summary of what ScamGuard does and doesn't do with your data.</p>
+      <p>Last updated August 23, 2026. Plain-language summary of what ScamGuard does and doesn't do with your data.</p>
     </div>
     <div class="about-copy">
-      <p><strong>What this preview collects:</strong> Nothing is sent to a server. When you scan a URL, ScamGuard analyzes the link entirely in your browser. The only thing saved is your scan history, and it's saved on your own device, not on ScamGuard's servers — see below.</p>
+      <p><strong>URL structure analysis:</strong> The first layer of every scan (protocol, hostname, TLD, brand-lookalike patterns, and similar structural signals) runs entirely in your browser. That step never leaves your device.</p>
 
-      <p><strong>Scan history:</strong> Each scan you run (domain, score, date) is stored locally using your browser's on-device storage so you can review it later in Scan History. This data is tied to your device/browser, not to an account, and is never transmitted anywhere. You can delete any entry, or all of them, at any time from the Scan History page.</p>
+      <p><strong>Live checks:</strong> For public websites, ScamGuard also runs live checks — domain age via a WHOIS/RDAP lookup, safe redirect-chain following, and, when configured, a Google Safe Browsing lookup. This requires sending the site's address to ScamGuard's server so it can perform those lookups. Internal or private network addresses are refused automatically before anything is fetched. These live checks are not logged or stored — they happen in memory for that one scan and are then discarded.</p>
 
-      <p><strong>URLs you scan:</strong> ScamGuard does not log, store, or transmit the URLs you analyze to any external service. Because links can contain sensitive information (session tokens, email addresses, tracking identifiers), avoid pasting a URL that isn't meant to be shared if you're ever using a version of ScamGuard that syncs history to a server.</p>
+      <p><strong>Scan history:</strong> If you're not logged in, each scan you run is stored locally in your own browser, never transmitted anywhere, and can be deleted at any time from the Scan History page. If you're logged in, a scan's domain, risk score, and date are also saved to your account (not the full URL) so your history can sync across devices — you can delete any entry, or your whole history, at any time.</p>
 
-      <p><strong>Accounts and payments:</strong> Login and paid plans are not connected in this preview — no account data or payment information is collected because those systems don't exist yet.</p>
+      <p><strong>Accounts:</strong> Creating an account stores your email address and a securely hashed password (never your plain-text password). This is used to log you in and, if you use "Forgot password," to email you a reset link. Login attempts are rate-limited to protect your account from being guessed at.</p>
 
-      <p><strong>Future versions:</strong> If ScamGuard adds server-side scanning (domain age, certificates, reputation databases) or accounts, this policy will be updated to explain exactly what's collected, why, how long it's kept, and how to delete it — before those features go live, not after.</p>
+      <p><strong>Reporting a website:</strong> If you use "Report a Website," the address you report, any reason you write, and an email address if you choose to provide one, are stored so the report can be reviewed.</p>
+
+      <p><strong>Payments:</strong> ScamGuard does not yet process any payments or store any financial or card information. Paid plans are not active yet — this policy will be updated with full details before they go live.</p>
 
       <p><strong>Contact:</strong> Questions about this policy can be sent to the site owner listed in the footer.</p>
     </div>
@@ -685,7 +721,7 @@ footer{border-top:1px solid var(--border-soft); padding:56px 0 32px; margin-top:
       <div class="footer-col"><h5>Product</h5><a href="#" data-nav="home">Scanner</a><a href="#" data-nav="pricing">Pricing</a><a href="#" data-nav="history">Scan History</a></div>
       <div class="footer-col"><h5>Company</h5><a href="#" data-nav="about">About</a><a href="#" data-nav="how">How It Works</a></div>
       <div class="footer-col"><h5>Resources</h5><a href="#" data-nav="threats">Scam Library</a><a href="#" id="reportLink">Report a Website</a></div>
-      <div class="footer-col"><h5>Legal</h5><a href="#" data-nav="privacy">Privacy Policy</a><a href="#" data-toast="Placeholder for this preview.">Terms</a><a href="#" data-toast="Placeholder for this preview.">Contact</a></div>
+      <div class="footer-col"><h5>Legal</h5><a href="#" data-nav="privacy">Privacy Policy</a><a href="#" data-toast="Terms of Service are coming soon.">Terms</a><a href="#" data-toast="A dedicated contact page is coming soon — for now, see the Privacy Policy for how to reach us.">Contact</a></div>
     </div>
     <p class="footer-disclaimer">ScamGuard is an automated risk-assessment service. Results are informational and do not guarantee website legitimacy or fraud.</p>
     <div class="footer-bottom"><span>© 2026 ScamGuard</span><span>Evidence-based website risk assessment</span></div>
@@ -1448,22 +1484,23 @@ function renderHistoryList(list, listEl, emptyEl){
 
 /* ---------------------------- SCAM LIBRARY DATA ---------------------------- */
 const THREATS = [
-  {title:'Fake Online Stores', what:'Websites built to look like real e-commerce shops that take payment but never ship real goods.', warnings:'Prices far below market rate, brand-new domain, no verifiable contact info, checkout only accepts hard-to-trace payment methods.', how:'Scammers clone product photos and store templates, run ads or social posts, and disappear after collecting payments.', protect:'Search the store name plus "reviews" or "scam" before buying, check for a real physical address and phone number, and prefer payment methods with buyer protection.'},
-  {title:'Fake "90% Off" Deals', what:'Ads and pages advertising extreme, unrealistic discounts on popular products.', warnings:'Discount percentage far exceeds normal retail promotions, countdown timers pressuring immediate purchase, unfamiliar checkout domain.', how:'Scammers use the discount itself as bait, relying on urgency to short-circuit normal skepticism.', protect:'Compare the price against the official retailer, be wary of countdown timers, and check the checkout domain matches the advertised brand.'},
-  {title:'Phishing', what:'Fake login or verification pages designed to steal usernames, passwords, or card details.', warnings:'Link received unexpectedly by email/text, urgent "your account will be suspended" language, domain that looks similar to but isn\'t the real service.', how:'Scammers imitate a trusted brand\'s login page and harvest whatever is typed in.', protect:'Never click login links from unsolicited messages — type the site\'s address directly, and check the domain carefully before entering credentials.'},
-  {title:'Fake Giveaways', what:'Posts or pages claiming you\'ve won a prize, gadget, or gift card.', warnings:'You don\'t remember entering, request for payment to "unlock" the prize, request for sensitive personal or card details.', how:'Scammers use the excitement of "winning" to get victims to pay a fee or hand over personal data.', protect:'Legitimate giveaways never require payment to claim a prize. Verify through the brand\'s official channels.'},
-  {title:'Impersonation Websites', what:'Sites designed to look like a real company, bank, or government agency.', warnings:'Slightly misspelled domain, low-quality copies of logos, requests for information the real organization wouldn\'t ask for online.', how:'Scammers copy branding and design to borrow the trust people place in the real organization.', protect:'Navigate directly to organizations by typing their known address rather than clicking links, and double check the domain spelling.'},
-  {title:'Fake Customer Support', what:'Scammers posing as tech or brand support, often via pop-ups, fake chat widgets, or search ads.', warnings:'Pop-up urging you to "call now," request for remote-access software, request for payment to "fix" a problem.', how:'Scammers create panic about a supposed problem, then charge for fake fixes or install malware via remote access.', protect:'Contact companies only through numbers or chat listed on their official website, never through a pop-up.'},
-  {title:'Investment Scams', what:'Promises of guaranteed or unusually high returns, often involving crypto.', warnings:'"Guaranteed" or "risk-free" returns, pressure to recruit others, unregistered or unverifiable platform.', how:'Scammers use fabricated dashboards showing fake gains to encourage larger deposits before disappearing with funds.', protect:'Be skeptical of guaranteed returns, verify registration with financial regulators, and never invest more than you can afford to lose.'},
-  {title:'Fake Social Media Accounts', what:'Accounts impersonating real brands, celebrities, or people to run scams through DMs or comments.', warnings:'Recently created account, slightly altered handle, unsolicited DM offering deals or opportunities.', how:'Scammers use the borrowed credibility of a familiar name to run giveaways, romance scams, or fake sales.', protect:'Check for verification badges, account age, and follower authenticity before trusting a DM or offer.'},
-  {title:'Fake Delivery Messages', what:'Texts or emails claiming a package couldn\'t be delivered and asking you to click a link or pay a fee.', warnings:'Unexpected delivery notice, generic courier name, link to an unfamiliar domain, request for a small "redelivery fee."', how:'Scammers exploit the routine nature of package deliveries to get quick clicks and card details.', protect:'Track packages only through the courier\'s official app or website, never through a link in a text message.'},
-  {title:'Subscription Traps', what:'"Free trial" offers that are difficult to cancel and quietly bill a card afterward.', warnings:'Card required for a "free" trial, unclear cancellation process, tiny-print recurring billing terms.', how:'Scammers rely on people forgetting to cancel before the trial converts into recurring charges.', protect:'Set a calendar reminder before any free trial ends, and check independent reviews of the cancellation process first.'},
+  {title:'Fake Online Stores', icon:'<path d="M6 8h12l-1 12H7L6 8Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9 8V6a3 3 0 0 1 6 0v2" stroke="currentColor" stroke-width="1.7"/>', what:'Websites built to look like real e-commerce shops that take payment but never ship real goods.', warnings:'Prices far below market rate, brand-new domain, no verifiable contact info, checkout only accepts hard-to-trace payment methods.', how:'Scammers clone product photos and store templates, run ads or social posts, and disappear after collecting payments.', protect:'Search the store name plus "reviews" or "scam" before buying, check for a real physical address and phone number, and prefer payment methods with buyer protection.'},
+  {title:'Fake "90% Off" Deals', icon:'<circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1.7"/><circle cx="17" cy="17" r="2" stroke="currentColor" stroke-width="1.7"/><path d="M18 6 6 18" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>', what:'Ads and pages advertising extreme, unrealistic discounts on popular products.', warnings:'Discount percentage far exceeds normal retail promotions, countdown timers pressuring immediate purchase, unfamiliar checkout domain.', how:'Scammers use the discount itself as bait, relying on urgency to short-circuit normal skepticism.', protect:'Compare the price against the official retailer, be wary of countdown timers, and check the checkout domain matches the advertised brand.'},
+  {title:'Phishing', icon:'<path d="M8 3v10a4 4 0 0 0 8 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="8" cy="3" r="1.6" stroke="currentColor" stroke-width="1.7"/>', what:'Fake login or verification pages designed to steal usernames, passwords, or card details.', warnings:'Link received unexpectedly by email/text, urgent "your account will be suspended" language, domain that looks similar to but isn\'t the real service.', how:'Scammers imitate a trusted brand\'s login page and harvest whatever is typed in.', protect:'Never click login links from unsolicited messages — type the site\'s address directly, and check the domain carefully before entering credentials.'},
+  {title:'Fake Giveaways', icon:'<rect x="4" y="10" width="16" height="10" rx="1.2" stroke="currentColor" stroke-width="1.7"/><path d="M4 10h16M12 10v10" stroke="currentColor" stroke-width="1.7"/><path d="M12 10c-2-4.5-6.5-4-6.5-1S9.5 10 12 10Zm0 0c2-4.5 6.5-4 6.5-1S14.5 10 12 10Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>', what:'Posts or pages claiming you\'ve won a prize, gadget, or gift card.', warnings:'You don\'t remember entering, request for payment to "unlock" the prize, request for sensitive personal or card details.', how:'Scammers use the excitement of "winning" to get victims to pay a fee or hand over personal data.', protect:'Legitimate giveaways never require payment to claim a prize. Verify through the brand\'s official channels.'},
+  {title:'Impersonation Websites', icon:'<rect x="3.5" y="3.5" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.7"/><rect x="8.5" y="8.5" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.7"/>', what:'Sites designed to look like a real company, bank, or government agency.', warnings:'Slightly misspelled domain, low-quality copies of logos, requests for information the real organization wouldn\'t ask for online.', how:'Scammers copy branding and design to borrow the trust people place in the real organization.', protect:'Navigate directly to organizations by typing their known address rather than clicking links, and double check the domain spelling.'},
+  {title:'Fake Customer Support', icon:'<path d="M4 13v-1a8 8 0 0 1 16 0v1" stroke="currentColor" stroke-width="1.7"/><rect x="2.5" y="13" width="4" height="6.5" rx="2" stroke="currentColor" stroke-width="1.7"/><rect x="17.5" y="13" width="4" height="6.5" rx="2" stroke="currentColor" stroke-width="1.7"/>', what:'Scammers posing as tech or brand support, often via pop-ups, fake chat widgets, or search ads.', warnings:'Pop-up urging you to "call now," request for remote-access software, request for payment to "fix" a problem.', how:'Scammers create panic about a supposed problem, then charge for fake fixes or install malware via remote access.', protect:'Contact companies only through numbers or chat listed on their official website, never through a pop-up.'},
+  {title:'Investment Scams', icon:'<path d="M3 17l6-6 4 4 8-8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 7h6v6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>', what:'Promises of guaranteed or unusually high returns, often involving crypto.', warnings:'"Guaranteed" or "risk-free" returns, pressure to recruit others, unregistered or unverifiable platform.', how:'Scammers use fabricated dashboards showing fake gains to encourage larger deposits before disappearing with funds.', protect:'Be skeptical of guaranteed returns, verify registration with financial regulators, and never invest more than you can afford to lose.'},
+  {title:'Fake Social Media Accounts', icon:'<circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.7"/><path d="M16 12v1.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-4 7.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>', what:'Accounts impersonating real brands, celebrities, or people to run scams through DMs or comments.', warnings:'Recently created account, slightly altered handle, unsolicited DM offering deals or opportunities.', how:'Scammers use the borrowed credibility of a familiar name to run giveaways, romance scams, or fake sales.', protect:'Check for verification badges, account age, and follower authenticity before trusting a DM or offer.'},
+  {title:'Fake Delivery Messages', icon:'<path d="M21 8 12 3 3 8v8l9 5 9-5V8Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M3 8l9 5 9-5M12 13v8" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>', what:'Texts or emails claiming a package couldn\'t be delivered and asking you to click a link or pay a fee.', warnings:'Unexpected delivery notice, generic courier name, link to an unfamiliar domain, request for a small "redelivery fee."', how:'Scammers exploit the routine nature of package deliveries to get quick clicks and card details.', protect:'Track packages only through the courier\'s official app or website, never through a link in a text message.'},
+  {title:'Subscription Traps', icon:'<path d="M4 12a8 8 0 0 1 14-5m2-3v5h-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 12a8 8 0 0 1-14 5m-2 3v-5h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>', what:'"Free trial" offers that are difficult to cancel and quietly bill a card afterward.', warnings:'Card required for a "free" trial, unclear cancellation process, tiny-print recurring billing terms.', how:'Scammers rely on people forgetting to cancel before the trial converts into recurring charges.', protect:'Set a calendar reminder before any free trial ends, and check independent reviews of the cancellation process first.'},
 ];
 
 function buildThreatLibrary(){
   const grid = document.getElementById('threatGrid');
   grid.innerHTML = THREATS.map((t, i) => `
     <div class="threat-card" data-threat="${i}">
+      <div class="threat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none">${t.icon}</svg></div>
       <h4>${escapeHtml(t.title)}</h4>
       <p>${escapeHtml(t.what)}</p>
       <div class="threat-detail" id="threat-detail-${i}">
