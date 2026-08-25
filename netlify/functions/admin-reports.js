@@ -73,6 +73,8 @@ exports.default = async (req) => {
 </head>
 <body>
   <a class="nav-link" href="/.netlify/functions/admin-suggestions?key=${encodeURIComponent(key)}">View suggestions &rarr;</a>
+  &nbsp;·&nbsp;
+  <a class="nav-link" href="/.netlify/functions/admin-waitlist?key=${encodeURIComponent(key)}">View waitlist &rarr;</a>
   <h1>Reported Websites</h1>
   <p class="count">${result.rows.length} report${result.rows.length === 1 ? '' : 's'} (most recent 200 shown)</p>
   ${result.rows.length ? `

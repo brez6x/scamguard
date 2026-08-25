@@ -120,6 +120,15 @@ function ensureSchema() {
       );
 
       create index if not exists idx_suggestions_created on suggestions(created_at desc);
+
+      create table if not exists waitlist (
+        id uuid primary key default gen_random_uuid(),
+        plan text not null,
+        email text,
+        created_at timestamptz not null default now()
+      );
+
+      create index if not exists idx_waitlist_created on waitlist(created_at desc);
     `).catch((err) => {
       schemaReady = null; // allow retry on next request if this failed
       throw err;
