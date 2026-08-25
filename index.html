@@ -561,7 +561,7 @@ footer{border-top:1px solid var(--border-soft); padding:56px 0 32px; margin-top:
           <li class="future">✓ Watchlist with alerts<span class="future-tag">Coming soon</span></li>
           <li class="future">✓ Advanced reputation checks<span class="future-tag">Coming soon</span></li>
         </ul>
-        <button class="btn btn-primary btn-block" data-toast="Pro plans are launching soon — thanks for your interest!">Notify Me at Launch</button>
+        <button type="button" class="btn btn-primary btn-block" data-waitlist="pro">Notify Me at Launch</button>
       </div>
       <div class="price-card">
         <div class="price-plan">Business</div>
@@ -572,7 +572,7 @@ footer{border-top:1px solid var(--border-soft); padding:56px 0 32px; margin-top:
           <li class="future">✓ API access<span class="future-tag">Coming soon</span></li>
           <li class="future">✓ Team members<span class="future-tag">Coming soon</span></li>
         </ul>
-        <button class="btn btn-ghost btn-block" data-toast="Business plans are launching soon — thanks for your interest!">Notify Me at Launch</button>
+        <button type="button" class="btn btn-ghost btn-block" data-waitlist="business">Notify Me at Launch</button>
       </div>
     </div>
   </div>
@@ -851,6 +851,26 @@ footer{border-top:1px solid var(--border-soft); padding:56px 0 32px; margin-top:
         <input type="email" id="suggestionEmail" autocomplete="email">
       </div>
       <button type="submit" class="btn btn-primary btn-block" id="suggestionSubmitBtn">Send Suggestion</button>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="waitlistModal">
+  <div class="modal-card">
+    <button class="modal-close" id="waitlistModalClose" aria-label="Close">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </button>
+    <div class="modal-tabs">
+      <button class="modal-tab active" style="pointer-events:none;" id="waitlistModalTitle">Notify Me at Launch</button>
+    </div>
+    <div class="modal-error" id="waitlistError"></div>
+    <div class="modal-msg" id="waitlistMsg"></div>
+    <form id="waitlistForm">
+      <div class="modal-field">
+        <label>Your email — we'll let you know the moment this plan launches</label>
+        <input type="email" id="waitlistEmail" autocomplete="email" placeholder="you@example.com">
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" id="waitlistSubmitBtn">Notify Me</button>
     </form>
   </div>
 </div>
@@ -1730,6 +1750,62 @@ suggestionForm.addEventListener('submit', async (e)=>{
     suggestionError.style.display = 'block';
   } finally {
     suggestionSubmitBtn.disabled = false;
+  }
+});
+
+/* ---------------------------- WAITLIST ("Notify Me at Launch") ---------------------------- */
+const waitlistModal = document.getElementById('waitlistModal');
+const waitlistForm = document.getElementById('waitlistForm');
+const waitlistError = document.getElementById('waitlistError');
+const waitlistMsg = document.getElementById('waitlistMsg');
+const waitlistEmail = document.getElementById('waitlistEmail');
+const waitlistSubmitBtn = document.getElementById('waitlistSubmitBtn');
+const waitlistModalTitle = document.getElementById('waitlistModalTitle');
+let waitlistPlan = 'pro';
+
+function openWaitlistModal(plan){
+  waitlistPlan = plan;
+  waitlistModalTitle.textContent = plan === 'business' ? 'Notify Me — Business Plan' : 'Notify Me — Pro Plan';
+  waitlistError.style.display='none'; waitlistMsg.style.display='none';
+  waitlistModal.classList.add('open');
+  setTimeout(()=>waitlistEmail.focus(), 50);
+}
+function closeWaitlistModal(){ waitlistModal.classList.remove('open'); }
+
+document.addEventListener('click', (e)=>{
+  const waitlistEl = e.target.closest('[data-waitlist]');
+  if (waitlistEl){
+    e.preventDefault();
+    openWaitlistModal(waitlistEl.dataset.waitlist);
+  }
+});
+document.getElementById('waitlistModalClose').addEventListener('click', closeWaitlistModal);
+waitlistModal.addEventListener('click', (e)=>{ if(e.target===waitlistModal) closeWaitlistModal(); });
+
+waitlistForm.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  waitlistError.style.display='none'; waitlistMsg.style.display='none';
+  waitlistSubmitBtn.disabled = true;
+  try{
+    const res = await fetch('/.netlify/functions/notify-launch', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ plan: waitlistPlan, email: waitlistEmail.value })
+    });
+    const data = await res.json();
+    if (res.ok){
+      waitlistMsg.textContent = data.message || 'Thanks — we\'ll email you when it launches!';
+      waitlistMsg.style.display = 'block';
+      waitlistForm.reset();
+      setTimeout(closeWaitlistModal, 1600);
+    } else {
+      waitlistError.textContent = data.error || 'Something went wrong.';
+      waitlistError.style.display = 'block';
+    }
+  }catch(err){
+    waitlistError.textContent = "Backend not reachable — couldn't record your interest. Please try again in a moment.";
+    waitlistError.style.display = 'block';
+  } finally {
+    waitlistSubmitBtn.disabled = false;
   }
 });
 
