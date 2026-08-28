@@ -334,6 +334,26 @@ main{position:relative; z-index:1;}
 .history-del{background:none; border:none; color:var(--text-muted); padding:6px; border-radius:6px;}
 .history-del:hover{color:var(--risk-vhigh); background:rgba(255,77,77,.08);}
 
+/* ============================= DASHBOARD TABS ============================= */
+.dash-tabs{display:flex; gap:6px; background:var(--bg-void); border:1px solid var(--border); border-radius:999px; padding:4px; margin-bottom:22px; max-width:fit-content; overflow-x:auto;}
+.dash-tab{border:none; background:none; color:var(--text-muted); padding:9px 18px; border-radius:999px; font-size:13.5px; font-weight:600; white-space:nowrap; font-family:inherit; cursor:pointer;}
+.dash-tab.active{background:var(--accent-cyan-dim); color:var(--accent-cyan);}
+.dash-panel.hidden{display:none;}
+
+.list-item{display:flex; align-items:center; justify-content:space-between; padding:14px 4px; border-bottom:1px solid var(--border-soft); gap:12px; flex-wrap:wrap;}
+.list-item:last-child{border-bottom:none;}
+.list-item-left{display:flex; flex-direction:column; gap:3px; min-width:0;}
+.list-item-url{font-family:var(--font-mono); font-size:13.5px; word-break:break-all;}
+.list-item-meta{font-size:11.5px; color:var(--text-muted);}
+.list-item-right{display:flex; align-items:center; gap:10px; flex-shrink:0;}
+.status-pill{font-family:var(--font-mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; padding:3px 9px; border-radius:999px; white-space:nowrap;}
+.status-pill.ok{color:var(--risk-vlow); background:color-mix(in srgb, var(--risk-vlow) 16%, transparent); border:1px solid var(--risk-vlow);}
+.status-pill.warning{color:var(--risk-mid); background:color-mix(in srgb, var(--risk-mid) 16%, transparent); border:1px solid var(--risk-mid);}
+.status-pill.blocked, .status-pill.error{color:var(--risk-vhigh); background:color-mix(in srgb, var(--risk-vhigh) 16%, transparent); border:1px solid var(--risk-vhigh);}
+.status-pill.unknown{color:var(--text-muted); background:var(--bg-void); border:1px solid var(--border);}
+.icon-btn{background:none; border:none; color:var(--text-muted); padding:6px; border-radius:6px;}
+.icon-btn:hover{color:var(--risk-vhigh); background:rgba(255,77,77,.08);}
+
 /* ============================= FOOTER ============================= */
 footer{border-top:1px solid var(--border-soft); padding:56px 0 32px; margin-top:40px;}
 .footer-grid{display:grid; grid-template-columns:1.4fr repeat(4,1fr); gap:32px; margin-bottom:40px;}
@@ -422,7 +442,7 @@ footer{border-top:1px solid var(--border-soft); padding:56px 0 32px; margin-top:
       <li><a href="#" data-nav="threats">Threats</a></li>
       <li><a href="#" data-nav="pricing">Pricing</a></li>
       <li><a href="#" data-nav="about">About</a></li>
-      <li><a href="#" data-nav="history">Scan History</a></li>
+      <li><a href="#" data-nav="history">Dashboard</a></li>
     </ul>
     <div class="nav-right">
       <button class="btn btn-ghost btn-sm" id="loginNavBtn">Login</button>
@@ -438,7 +458,7 @@ footer{border-top:1px solid var(--border-soft); padding:56px 0 32px; margin-top:
     <a href="#" data-nav="threats">Threats</a>
     <a href="#" data-nav="pricing">Pricing</a>
     <a href="#" data-nav="about">About</a>
-    <a href="#" data-nav="history">Scan History</a>
+    <a href="#" data-nav="history">Dashboard</a>
     <button id="loginNavBtnMobile">Login</button>
   </div>
 </nav>
@@ -607,8 +627,8 @@ footer{border-top:1px solid var(--border-soft); padding:56px 0 32px; margin-top:
           <li>✓ 100 scans / month</li>
           <li>✓ Full technical details</li>
           <li>✓ Extended scan history</li>
-          <li class="future">✓ Watchlist with alerts<span class="future-tag">Coming soon</span></li>
-          <li class="future">✓ Advanced reputation checks<span class="future-tag">Coming soon</span></li>
+          <li>✓ Watchlist with alerts</li>
+          <li>✓ Advanced reputation checks (SSL)</li>
         </ul>
         <button type="button" class="btn btn-primary btn-block" data-waitlist="pro">Notify Me at Launch</button>
       </div>
@@ -617,9 +637,9 @@ footer{border-top:1px solid var(--border-soft); padding:56px 0 32px; margin-top:
         <div class="price-amount"><span class="amt" data-monthly="$29.99" data-annual="$287.90">$29.99</span><span class="period" data-monthly="/month" data-annual="/year">/month</span></div>
         <div class="price-save">Save $71.98/year — that's like $23.99/mo</div>
         <ul class="price-feats">
-          <li class="future">✓ 1,000 scans / month<span class="future-tag">Coming soon</span></li>
-          <li class="future">✓ Bulk URL &amp; CSV scanning<span class="future-tag">Coming soon</span></li>
-          <li class="future">✓ API access<span class="future-tag">Coming soon</span></li>
+          <li>✓ 1,000 scans / month</li>
+          <li>✓ Bulk URL &amp; CSV scanning</li>
+          <li>✓ API access</li>
           <li class="future">✓ Team members<span class="future-tag">Coming soon</span></li>
         </ul>
         <button type="button" class="btn btn-ghost btn-block" data-waitlist="business">Notify Me at Launch</button>
@@ -661,17 +681,116 @@ footer{border-top:1px solid var(--border-soft); padding:56px 0 32px; margin-top:
   </div>
 </section>
 
-<!-- ============================= SCAN HISTORY ============================= -->
+<!-- ============================= DASHBOARD (Scan History / Watchlist / Bulk Scan / API) ============================= -->
 <section id="page-history" class="section hidden">
   <div class="container">
-    <div class="section-head" style="margin-bottom:24px;">
+    <div class="section-head" style="margin-bottom:20px;">
       <div class="eyebrow">Dashboard</div>
-      <h2>Scan History</h2>
-      <p>Scans are saved to your account when you're logged in. Log in from the navbar to sync history across devices — otherwise it's stored only on this browser.</p>
+      <h2>Your ScamGuard Dashboard</h2>
+      <p>Scan history, watchlist alerts, bulk scanning, and API access — all in one place. Log in from the navbar to use these features and sync across devices.</p>
     </div>
-    <div class="card">
-      <div id="historyList"></div>
-      <div id="historyEmpty" class="empty-state hidden">No scans yet. Run a scan from the homepage to see it appear here.</div>
+
+    <div class="dash-tabs" id="dashTabs">
+      <button type="button" class="dash-tab active" data-dash-tab="history">Scan History</button>
+      <button type="button" class="dash-tab" data-dash-tab="watchlist">Watchlist</button>
+      <button type="button" class="dash-tab" data-dash-tab="bulk">Bulk Scan</button>
+      <button type="button" class="dash-tab" data-dash-tab="api">API Access</button>
+    </div>
+
+    <!-- Scan History -->
+    <div class="dash-panel" id="dashPanel-history">
+      <div class="card">
+        <div id="historyList"></div>
+        <div id="historyEmpty" class="empty-state hidden">No scans yet. Run a scan from the homepage to see it appear here.</div>
+      </div>
+    </div>
+
+    <!-- Watchlist -->
+    <div class="dash-panel hidden" id="dashPanel-watchlist">
+      <div id="watchlistLoggedOut" class="card hidden">
+        <p style="margin:0 0 14px; color:var(--text-secondary); font-size:14.5px;">Log in or create a free account to save sites to your watchlist — ScamGuard will re-check them automatically and email you if something changes.</p>
+        <button type="button" class="btn btn-primary btn-sm" id="watchlistLoginBtn">Log In / Sign Up</button>
+      </div>
+      <div id="watchlistLoggedIn" class="card hidden">
+        <div class="card-title">Add a site to watch</div>
+        <p style="font-size:13.5px; color:var(--text-secondary); margin:-6px 0 16px;">ScamGuard checks watched sites once a day and emails you if a site becomes flagged as unsafe or its final destination changes. Up to 10 sites.</p>
+        <div id="watchlistError" class="modal-error"></div>
+        <form id="watchlistForm">
+          <div class="modal-field">
+            <label for="watchlistUrl">Website URL</label>
+            <input id="watchlistUrl" type="text" placeholder="https://example.com" autocomplete="off" required>
+          </div>
+          <div class="modal-field">
+            <label for="watchlistLabel">Label (optional)</label>
+            <input id="watchlistLabel" type="text" placeholder="e.g. Supplier checkout page" maxlength="80">
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm" id="watchlistAddBtn">Add to Watchlist</button>
+        </form>
+      </div>
+      <div class="card hidden" id="watchlistListCard">
+        <div class="card-title">Watched sites</div>
+        <div id="watchlistList"></div>
+        <div id="watchlistEmpty" class="empty-state hidden">Nothing on your watchlist yet.</div>
+      </div>
+    </div>
+
+    <!-- Bulk Scan -->
+    <div class="dash-panel hidden" id="dashPanel-bulk">
+      <div id="bulkLoggedOut" class="card hidden">
+        <p style="margin:0 0 14px; color:var(--text-secondary); font-size:14.5px;">Log in or create a free account to scan multiple URLs at once.</p>
+        <button type="button" class="btn btn-primary btn-sm" id="bulkLoginBtn">Log In / Sign Up</button>
+      </div>
+      <div id="bulkLoggedIn" class="card hidden">
+        <div class="card-title">Scan up to 8 URLs at once</div>
+        <p style="font-size:13.5px; color:var(--text-secondary); margin:-6px 0 16px;">Paste one URL per line, or upload a CSV — ScamGuard uses the first column that looks like a URL.</p>
+        <div id="bulkError" class="modal-error"></div>
+        <div class="modal-field">
+          <label for="bulkUrls">URLs (one per line)</label>
+          <textarea id="bulkUrls" rows="5" placeholder="https://example.com&#10;https://another-site.com"></textarea>
+        </div>
+        <div class="modal-field">
+          <label for="bulkCsvFile">Or upload a CSV</label>
+          <input id="bulkCsvFile" type="file" accept=".csv,text/csv">
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" id="bulkScanBtn">Run Bulk Scan</button>
+      </div>
+      <div class="card hidden" id="bulkResultsCard">
+        <div class="card-title">Results</div>
+        <div id="bulkResultsList"></div>
+      </div>
+    </div>
+
+    <!-- API Access -->
+    <div class="dash-panel hidden" id="dashPanel-api">
+      <div id="apiLoggedOut" class="card hidden">
+        <p style="margin:0 0 14px; color:var(--text-secondary); font-size:14.5px;">Log in or create a free account to generate an API key.</p>
+        <button type="button" class="btn btn-primary btn-sm" id="apiLoginBtn">Log In / Sign Up</button>
+      </div>
+      <div id="apiLoggedIn" class="card hidden">
+        <div class="card-title">Your API keys</div>
+        <p style="font-size:13.5px; color:var(--text-secondary); margin:-6px 0 16px;">Up to 5 active keys. The full key is only ever shown once, right when you create it.</p>
+        <div id="apiError" class="modal-error"></div>
+        <div id="apiNewKeyBox" class="hidden" style="background:var(--bg-void); border:1px solid var(--accent-cyan-line); border-radius:var(--radius-sm); padding:14px; margin-bottom:16px;">
+          <div style="font-size:12px; color:var(--text-muted); font-family:var(--font-mono); text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px;">New key — copy it now, it won't be shown again</div>
+          <div id="apiNewKeyValue" class="mono" style="font-size:13.5px; word-break:break-all; color:var(--accent-cyan);"></div>
+        </div>
+        <div id="apiKeyList"></div>
+        <div id="apiKeyEmpty" class="empty-state hidden">No API keys yet.</div>
+        <div class="modal-field" style="max-width:280px; margin-top:16px;">
+          <label for="apiKeyLabelInput">Key label (optional)</label>
+          <input id="apiKeyLabelInput" type="text" placeholder="e.g. My Zapier integration" maxlength="60">
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" id="apiCreateKeyBtn">Generate New Key</button>
+      </div>
+      <div class="card">
+        <div class="card-title">Using the API</div>
+        <p style="font-size:13.5px; color:var(--text-secondary);">Send a POST request with your key as a Bearer token:</p>
+        <pre class="mono" style="background:var(--bg-void); border:1px solid var(--border); border-radius:var(--radius-sm); padding:14px; font-size:12.5px; overflow-x:auto; white-space:pre-wrap;">curl -X POST https://scamguard.store/.netlify/functions/api-check \
+  -H "Authorization: Bearer sg_live_your_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://example.com"}'</pre>
+        <p style="font-size:12.5px; color:var(--text-muted); margin-top:10px;">Rate limit: 60 requests per hour per key. Response includes the same Safe Browsing, domain age, redirect chain, and SSL certificate data shown on the website.</p>
+      </div>
     </div>
   </div>
 </section>
@@ -796,7 +915,7 @@ footer{border-top:1px solid var(--border-soft); padding:56px 0 32px; margin-top:
         </div>
         <p style="font-size:13.5px; max-width:240px;">Check before you click. Know the risks before you buy, sign in, or share your information.</p>
       </div>
-      <div class="footer-col"><h5>Product</h5><a href="#" data-nav="home">Scanner</a><a href="#" data-nav="pricing">Pricing</a><a href="#" data-nav="history">Scan History</a></div>
+      <div class="footer-col"><h5>Product</h5><a href="#" data-nav="home">Scanner</a><a href="#" data-nav="pricing">Pricing</a><a href="#" data-nav="history">Dashboard</a></div>
       <div class="footer-col"><h5>Company</h5><a href="#" data-nav="about">About</a><a href="#" data-nav="how">How It Works</a></div>
       <div class="footer-col"><h5>Resources</h5><a href="#" data-nav="threats">Scam Library</a><a href="#" id="reportLink">Report a Website</a><a href="#" id="suggestionLink">Suggest an Idea</a></div>
       <div class="footer-col"><h5>Legal</h5><a href="#" data-nav="privacy">Privacy Policy</a><a href="#" data-toast="Terms of Service are coming soon.">Terms</a><a href="#" data-toast="A dedicated contact page is coming soon — for now, see the Privacy Policy for how to reach us.">Contact</a></div>
@@ -937,12 +1056,11 @@ footer{border-top:1px solid var(--border-soft); padding:56px 0 32px; margin-top:
    or random data anywhere in this file. `runHeuristicScan()` itself
    stays client-side/structural only (protocol, hostname, TLD, etc).
    Live checks that need a real backend — domain age/registrar (RDAP),
-   Google Safe Browsing, and SSRF-guarded redirect-chain following —
-   are fetched from /.netlify/functions/threat-check and merged in by
-   `mergeServerData()` below. TLS certificate chain inspection is not
-   yet connected. Any live check that fails, times out, or (for Safe
-   Browsing) has no API key configured is reported as unavailable
-   with the real reason — never simulated or faked.
+   Google Safe Browsing, SSRF-guarded redirect-chain following, and SSL
+   certificate inspection — are fetched from /.netlify/functions/threat-check
+   and merged in by `mergeServerData()` below. Any live check that fails,
+   times out, or (for Safe Browsing) has no API key configured is reported
+   as unavailable with the real reason — never simulated or faked.
 ===================================================================== */
 
 /* ---------------------------- NAV / ROUTING ---------------------------- */
@@ -956,7 +1074,7 @@ function showPage(id){
     a.classList.toggle('active', a.dataset.nav === id);
   });
   window.scrollTo({top:0, behavior:'instant' in window ? 'instant' : 'auto'});
-  if (id === 'history') renderHistory();
+  if (id === 'history') showDashboardTab(currentDashTab);
 }
 
 document.addEventListener('click', (e)=>{
@@ -1149,10 +1267,10 @@ function runHeuristicScan(u, host, isPrivateTarget){
     'Domain Age': 'Not available — requires WHOIS/RDAP backend integration',
     'Registrar': 'Not available — requires WHOIS/RDAP backend integration',
     'HTTPS': u.protocol === 'https:' ? 'Yes' : 'No',
-    'Certificate Details': 'Not available — requires server-side TLS inspection',
     'Redirect Chain': 'Not available — requires safe server-side fetch (SSRF-guarded)',
     'DNS Information': 'Not available — requires DNS lookup backend',
     'Reputation / Threat Intelligence': 'Not available — requires reputation API integration',
+    'SSL Certificate': 'Not available — requires server-side TLS inspection',
     'Path Analyzed': u.pathname + (u.search || ''),
     'Scan Timestamp': new Date().toISOString(),
   };
@@ -1302,6 +1420,7 @@ function mergeServerData(clientScan, serverData, validated){
     scan.techDetails['Domain Age'] = 'Not available — ' + why;
     scan.techDetails['Redirect Chain'] = 'Not available — ' + why;
     scan.techDetails['Reputation / Threat Intelligence'] = 'Not available — ' + why;
+    scan.techDetails['SSL Certificate'] = 'Not available — ' + why;
     return finalizeScore(scan);
   }
 
@@ -1310,6 +1429,7 @@ function mergeServerData(clientScan, serverData, validated){
     scan.techDetails['Domain Age'] = 'Not available — ' + (serverData.reason || 'blocked target');
     scan.techDetails['Redirect Chain'] = 'Not available — ' + (serverData.reason || 'blocked target');
     scan.techDetails['Reputation / Threat Intelligence'] = 'Not available — ' + (serverData.reason || 'blocked target');
+    scan.techDetails['SSL Certificate'] = 'Not available — ' + (serverData.reason || 'blocked target');
     return finalizeScore(scan);
   }
 
@@ -1375,6 +1495,24 @@ function mergeServerData(clientScan, serverData, validated){
     scan.techDetails['Redirect Chain'] = 'Not available — live lookup failed or timed out';
   }
 
+  // --- SSL/TLS certificate inspection (connects directly on port 443) ---
+  const ssl = serverData.sslCertificate;
+  if (ssl && ssl.available){
+    const expiryPart = ssl.daysUntilExpiry != null ? (ssl.daysUntilExpiry + ' day(s) until expiry') : 'expiry unknown';
+    scan.techDetails['SSL Certificate'] = (ssl.issuer ? 'Issued by ' + ssl.issuer + ' — ' : '') + expiryPart;
+    if (!ssl.valid){
+      add('Security','SSL Certificate Not Trusted','high','A live connection to this site\'s HTTPS port found that its SSL/TLS certificate is not valid or not trusted by standard certificate authorities ('+(ssl.authorizedError||'unspecified error')+'). Browsers will typically show a security warning for this site.', ssl.authorizedError);
+    } else if (ssl.selfSigned){
+      add('Security','Self-Signed SSL Certificate','high','This site\'s SSL certificate is self-signed rather than issued by a recognized certificate authority — legitimate public-facing businesses almost never use self-signed certificates.', null);
+    } else if (typeof ssl.daysUntilExpiry === 'number' && ssl.daysUntilExpiry < 14){
+      add('Security','SSL Certificate Expiring Soon','medium','This site\'s SSL certificate expires in '+ssl.daysUntilExpiry+' day(s). An expiring or lapsed certificate can be a sign of an abandoned or poorly maintained site.', expiryPart);
+    } else {
+      add('Security','Valid SSL Certificate','info','A live connection confirmed this site presents a valid, trusted SSL certificate'+(ssl.issuer?' issued by '+ssl.issuer:'')+'.', expiryPart, true);
+    }
+  } else {
+    scan.techDetails['SSL Certificate'] = 'Not available — ' + ((ssl && ssl.reason) || 'live lookup failed or timed out');
+  }
+
   return finalizeScore(scan);
 }
 
@@ -1415,8 +1553,8 @@ function renderResults(host, scan){
     : `No warning signs were found by the checks currently available.`;
 
   document.getElementById('confidenceNote').innerHTML = scan.serverChecked
-    ? 'This score combines <strong style="color:var(--text-secondary)">URL-structure signals</strong> with <strong style="color:var(--text-secondary)">live domain-age (RDAP), redirect-chain, and reputation checks</strong> run server-side. TLS certificate inspection is not yet connected — see Technical Details below. Confidence: <strong style="color:var(--text-secondary)">Standard</strong>.'
-    : 'This score is based on <strong style="color:var(--text-secondary)">URL-structure signals only</strong> — the live domain-age/reputation/redirect checks did not respond for this scan. See Technical Details below. Confidence: <strong style="color:var(--text-secondary)">Limited</strong>.';
+    ? 'This score combines <strong style="color:var(--text-secondary)">URL-structure signals</strong> with <strong style="color:var(--text-secondary)">live domain-age (RDAP), redirect-chain, reputation, and SSL certificate checks</strong> run server-side. See Technical Details below. Confidence: <strong style="color:var(--text-secondary)">Standard</strong>.'
+    : 'This score is based on <strong style="color:var(--text-secondary)">URL-structure signals only</strong> — the live domain-age/reputation/redirect/SSL checks did not respond for this scan. See Technical Details below. Confidence: <strong style="color:var(--text-secondary)">Limited</strong>.';
 
   // Explanation
   const topWarnings = warnings.slice().sort((a,b)=>({high:3,medium:2,low:1}[b.severity]-{high:3,medium:2,low:1}[a.severity])).slice(0,2);
@@ -1603,6 +1741,311 @@ function renderHistoryList(list, listEl, emptyEl){
     });
   });
 }
+
+/* ---------------------------- DASHBOARD TABS ---------------------------- */
+let currentDashTab = 'history';
+
+function showDashboardTab(tab){
+  currentDashTab = tab;
+  document.querySelectorAll('.dash-tab').forEach(b => b.classList.toggle('active', b.dataset.dashTab === tab));
+  document.querySelectorAll('.dash-panel').forEach(p => p.classList.toggle('hidden', p.id !== 'dashPanel-' + tab));
+  if (tab === 'history') renderHistory();
+  if (tab === 'watchlist') renderWatchlist();
+  if (tab === 'bulk') renderBulkPanel();
+  if (tab === 'api') renderApiKeys();
+}
+
+document.getElementById('dashTabs').addEventListener('click', (e)=>{
+  const btn = e.target.closest('[data-dash-tab]');
+  if (btn) showDashboardTab(btn.dataset.dashTab);
+});
+
+function setLoggedGate(loggedOutEl, loggedInEls){
+  const loggedIn = !!currentUser;
+  document.getElementById(loggedOutEl).classList.toggle('hidden', loggedIn);
+  loggedInEls.forEach(id => document.getElementById(id).classList.toggle('hidden', !loggedIn));
+  return loggedIn;
+}
+
+/* ---------------------------- WATCHLIST ---------------------------- */
+async function renderWatchlist(){
+  const loggedIn = setLoggedGate('watchlistLoggedOut', ['watchlistLoggedIn']);
+  const listCard = document.getElementById('watchlistListCard');
+  if (!loggedIn){ listCard.classList.add('hidden'); return; }
+
+  try{
+    const res = await fetch('/.netlify/functions/watchlist', {credentials:'include'});
+    if (!res.ok) throw new Error('fetch failed');
+    const data = await res.json();
+    renderWatchlistList(data.sites || []);
+  }catch(e){
+    listCard.classList.add('hidden');
+  }
+}
+
+function watchlistStatusPill(site){
+  if (!site.last_checked_at) return {cls:'unknown', label:'Not checked yet'};
+  if (site.last_check_error) return {cls:'error', label:'Check failed'};
+  if (site.last_flagged) return {cls:'blocked', label:'Flagged'};
+  return {cls:'ok', label:'Clean'};
+}
+
+function renderWatchlistList(sites){
+  const listCard = document.getElementById('watchlistListCard');
+  const listEl = document.getElementById('watchlistList');
+  const emptyEl = document.getElementById('watchlistEmpty');
+  listCard.classList.remove('hidden');
+
+  if (!sites.length){
+    listEl.innerHTML = '';
+    emptyEl.classList.remove('hidden');
+    return;
+  }
+  emptyEl.classList.add('hidden');
+  listEl.innerHTML = sites.map(site => {
+    const pill = watchlistStatusPill(site);
+    const checkedNote = site.last_checked_at ? 'Last checked ' + new Date(site.last_checked_at).toLocaleString() : 'Checked once a day, automatically';
+    return `<div class="list-item">
+      <div class="list-item-left">
+        <div class="list-item-url">${escapeHtml(site.label ? site.label + ' — ' : '')}${escapeHtml(site.url)}</div>
+        <div class="list-item-meta">${escapeHtml(checkedNote)}</div>
+      </div>
+      <div class="list-item-right">
+        <span class="status-pill ${pill.cls}">${pill.label}</span>
+        <button type="button" class="icon-btn" data-watchlist-del="${site.id}" aria-label="Remove from watchlist">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+
+  listEl.querySelectorAll('[data-watchlist-del]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      btn.disabled = true;
+      try{
+        await fetch('/.netlify/functions/watchlist', {
+          method:'DELETE', headers:{'Content-Type':'application/json'}, credentials:'include',
+          body: JSON.stringify({id: btn.dataset.watchlistDel})
+        });
+      }catch(e){}
+      renderWatchlist();
+    });
+  });
+}
+
+document.getElementById('watchlistLoginBtn').addEventListener('click', openAuthModal);
+
+document.getElementById('watchlistForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const errEl = document.getElementById('watchlistError');
+  errEl.style.display = 'none';
+  const url = document.getElementById('watchlistUrl').value.trim();
+  const label = document.getElementById('watchlistLabel').value.trim();
+  const btn = document.getElementById('watchlistAddBtn');
+  btn.disabled = true;
+  try{
+    const res = await fetch('/.netlify/functions/watchlist', {
+      method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include',
+      body: JSON.stringify({url, label})
+    });
+    const data = await res.json();
+    if (res.ok){
+      document.getElementById('watchlistForm').reset();
+      renderWatchlist();
+    } else {
+      errEl.textContent = data.error || 'Could not add that site.';
+      errEl.style.display = 'block';
+    }
+  }catch(err){
+    errEl.textContent = 'Backend not reachable — could not add that site right now.';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+/* ---------------------------- BULK SCAN ---------------------------- */
+function renderBulkPanel(){
+  setLoggedGate('bulkLoggedOut', ['bulkLoggedIn']);
+  document.getElementById('bulkResultsCard').classList.add('hidden');
+}
+
+document.getElementById('bulkLoginBtn').addEventListener('click', openAuthModal);
+
+function parseCsvUrls(text){
+  const urlLike = /^(https?:\/\/)?[\w-]+(\.[\w-]+)+(\/\S*)?$/i;
+  const found = [];
+  text.split(/\r?\n/).forEach(line=>{
+    if (!line.trim()) return;
+    const cells = line.split(',').map(c=>c.trim().replace(/^"|"$/g,''));
+    const match = cells.find(c => urlLike.test(c));
+    if (match) found.push(match);
+  });
+  return found;
+}
+
+document.getElementById('bulkCsvFile').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  if (!file) return;
+  const errEl = document.getElementById('bulkError');
+  errEl.style.display = 'none';
+  try{
+    const text = await file.text();
+    const urls = parseCsvUrls(text);
+    if (!urls.length){
+      errEl.textContent = 'Could not find any website URLs in that CSV.';
+      errEl.style.display = 'block';
+      return;
+    }
+    document.getElementById('bulkUrls').value = urls.join('\n');
+  }catch(err){
+    errEl.textContent = 'Could not read that CSV file.';
+    errEl.style.display = 'block';
+  }
+});
+
+document.getElementById('bulkScanBtn').addEventListener('click', async ()=>{
+  const errEl = document.getElementById('bulkError');
+  errEl.style.display = 'none';
+  const raw = document.getElementById('bulkUrls').value;
+  const urls = [...new Set(raw.split(/\r?\n/).map(u=>u.trim()).filter(Boolean))].slice(0, 8);
+  if (!urls.length){
+    errEl.textContent = 'Enter at least one URL, or upload a CSV.';
+    errEl.style.display = 'block';
+    return;
+  }
+  const btn = document.getElementById('bulkScanBtn');
+  btn.disabled = true;
+  btn.textContent = 'Scanning…';
+  try{
+    const res = await fetch('/.netlify/functions/bulk-scan', {
+      method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include',
+      body: JSON.stringify({urls})
+    });
+    const data = await res.json();
+    if (res.ok){
+      renderBulkResults(data.results || []);
+    } else {
+      errEl.textContent = data.error || 'Bulk scan failed.';
+      errEl.style.display = 'block';
+    }
+  }catch(err){
+    errEl.textContent = 'Backend not reachable — could not run the bulk scan right now.';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Run Bulk Scan';
+  }
+});
+
+function renderBulkResults(results){
+  const card = document.getElementById('bulkResultsCard');
+  const listEl = document.getElementById('bulkResultsList');
+  card.classList.remove('hidden');
+  listEl.innerHTML = results.map(r=>{
+    const pillCls = r.status === 'ok' ? 'ok' : (r.status === 'warning' ? 'warning' : (r.status === 'blocked' || r.status === 'error' ? 'blocked' : 'unknown'));
+    const detail = (r.flags && r.flags.length) ? r.flags.join(', ') : (r.message || 'No warning signs found');
+    return `<div class="list-item">
+      <div class="list-item-left">
+        <div class="list-item-url">${escapeHtml(r.url)}</div>
+        <div class="list-item-meta">${escapeHtml(detail)}</div>
+      </div>
+      <div class="list-item-right">
+        <span class="status-pill ${pillCls}">${escapeHtml(r.status)}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------------------------- API ACCESS ---------------------------- */
+async function renderApiKeys(){
+  const loggedIn = setLoggedGate('apiLoggedOut', ['apiLoggedIn']);
+  if (!loggedIn) return;
+  document.getElementById('apiNewKeyBox').classList.add('hidden');
+  await loadApiKeyList();
+}
+
+async function loadApiKeyList(){
+  try{
+    const res = await fetch('/.netlify/functions/api-keys', {credentials:'include'});
+    if (!res.ok) throw new Error('fetch failed');
+    const data = await res.json();
+    renderApiKeyList((data.keys || []).filter(k=>!k.revoked));
+  }catch(e){
+    document.getElementById('apiKeyList').innerHTML = '';
+    document.getElementById('apiKeyEmpty').classList.remove('hidden');
+  }
+}
+
+function renderApiKeyList(keys){
+  const listEl = document.getElementById('apiKeyList');
+  const emptyEl = document.getElementById('apiKeyEmpty');
+  if (!keys.length){
+    listEl.innerHTML = '';
+    emptyEl.classList.remove('hidden');
+    return;
+  }
+  emptyEl.classList.add('hidden');
+  listEl.innerHTML = keys.map(k=>{
+    const used = k.last_used_at ? 'Last used ' + new Date(k.last_used_at).toLocaleString() : 'Never used yet';
+    return `<div class="list-item">
+      <div class="list-item-left">
+        <div class="list-item-url">${escapeHtml(k.label)} <span class="mono" style="color:var(--text-muted);">${escapeHtml(k.key_prefix)}…</span></div>
+        <div class="list-item-meta">${escapeHtml(used)} · Created ${new Date(k.created_at).toLocaleDateString()}</div>
+      </div>
+      <div class="list-item-right">
+        <button type="button" class="icon-btn" data-api-revoke="${k.id}" aria-label="Revoke key">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+
+  listEl.querySelectorAll('[data-api-revoke]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      btn.disabled = true;
+      try{
+        await fetch('/.netlify/functions/api-keys', {
+          method:'DELETE', headers:{'Content-Type':'application/json'}, credentials:'include',
+          body: JSON.stringify({id: btn.dataset.apiRevoke})
+        });
+      }catch(e){}
+      renderApiKeys();
+    });
+  });
+}
+
+document.getElementById('apiLoginBtn').addEventListener('click', openAuthModal);
+
+document.getElementById('apiCreateKeyBtn').addEventListener('click', async ()=>{
+  const errEl = document.getElementById('apiError');
+  errEl.style.display = 'none';
+  const label = document.getElementById('apiKeyLabelInput').value.trim();
+  const btn = document.getElementById('apiCreateKeyBtn');
+  btn.disabled = true;
+  try{
+    const res = await fetch('/.netlify/functions/api-keys', {
+      method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include',
+      body: JSON.stringify({label})
+    });
+    const data = await res.json();
+    if (res.ok){
+      document.getElementById('apiKeyLabelInput').value = '';
+      const box = document.getElementById('apiNewKeyBox');
+      document.getElementById('apiNewKeyValue').textContent = data.rawKey;
+      box.classList.remove('hidden');
+      await loadApiKeyList();
+    } else {
+      errEl.textContent = data.error || 'Could not create an API key.';
+      errEl.style.display = 'block';
+    }
+  }catch(err){
+    errEl.textContent = 'Backend not reachable — could not create an API key right now.';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+  }
+});
 
 /* ---------------------------- SCAM LIBRARY DATA ---------------------------- */
 const THREATS = [
