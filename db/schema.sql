@@ -73,3 +73,39 @@ create table if not exists suggestions (
 
 create index if not exists idx_suggestions_created on suggestions(created_at desc);
 
+create table if not exists waitlist (
+  id uuid primary key default gen_random_uuid(),
+  plan text not null,
+  email text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_waitlist_created on waitlist(created_at desc);
+
+create table if not exists watchlist_sites (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  url text not null,
+  label text,
+  last_flagged boolean not null default false,
+  last_redirect_domain text,
+  last_checked_at timestamptz,
+  last_check_error text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_watchlist_user on watchlist_sites(user_id, created_at desc);
+
+create table if not exists api_keys (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  label text not null default 'API Key',
+  key_hash text not null unique,
+  key_prefix text not null,
+  revoked boolean not null default false,
+  last_used_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_api_keys_user on api_keys(user_id, created_at desc);
+
