@@ -130,6 +130,20 @@ img,svg{display:block;}
 main{position:relative; z-index:1;}
 .section{padding:88px 0;}
 .section-tight{padding:56px 0;}
+.stats-bar{
+  display:grid; grid-template-columns:repeat(3,1fr); gap:0;
+  background:var(--bg-surface); border:1px solid var(--border); border-radius:16px;
+  padding:32px 24px; margin:0 0 8px;
+}
+.stat-item{text-align:center; padding:0 20px; position:relative;}
+.stat-item + .stat-item{border-left:1px solid var(--border);}
+.stat-num{font-size:34px; font-weight:800; color:var(--accent-cyan); letter-spacing:-0.02em; line-height:1.1;}
+.stat-label{font-size:13.5px; color:var(--text-primary,#e2e8f0); margin-top:8px; line-height:1.4;}
+.stat-source{font-family:var(--font-mono); font-size:11px; color:var(--text-muted); margin-top:6px;}
+@media (max-width:768px){
+  .stats-bar{grid-template-columns:1fr; gap:24px; padding:28px 20px;}
+  .stat-item + .stat-item{border-left:none; border-top:1px solid var(--border); padding-top:20px;}
+}
 .eyebrow{
   display:inline-flex; align-items:center; gap:8px; font-family:var(--font-mono); font-size:12px;
   color:var(--accent-cyan); background:var(--accent-cyan-dim); border:1px solid var(--accent-cyan-line);
@@ -270,7 +284,17 @@ main{position:relative; z-index:1;}
 .popular-tag{position:absolute; top:-12px; left:26px; background:var(--accent-cyan); color:#04121A; font-size:11px; font-weight:700; padding:4px 12px; border-radius:999px; font-family:var(--font-mono);}
 .price-plan{font-family:var(--font-mono); font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--text-muted); margin-bottom:10px;}
 .price-amount{font-family:var(--font-display); font-size:38px; margin-bottom:4px;}
-.price-amount span{font-size:14px; color:var(--text-muted); font-family:var(--font-body);}
+.price-amount .period{font-size:14px; color:var(--text-muted); font-family:var(--font-body);}
+.price-save{font-size:12px; color:#3ddc84; margin:-2px 0 4px; min-height:16px;}
+.billing-toggle{display:flex; justify-content:center; align-items:center; gap:6px; margin:0 0 28px; background:var(--bg-surface); border:1px solid var(--border); border-radius:999px; padding:5px; width:fit-content; margin-left:auto; margin-right:auto;}
+.toggle-btn{
+  font-family:inherit; font-size:13.5px; font-weight:600; color:var(--text-muted);
+  background:transparent; border:none; border-radius:999px; padding:9px 18px; cursor:pointer;
+  display:flex; align-items:center; gap:8px; transition:.15s;
+}
+.toggle-btn.active{background:var(--accent-cyan); color:#04121A;}
+.save-badge{font-family:var(--font-mono); font-size:10px; font-weight:700; padding:2px 7px; border-radius:999px; background:rgba(4,18,26,.18); color:inherit;}
+.toggle-btn:not(.active) .save-badge{background:var(--accent-cyan-dim); color:var(--accent-cyan);}
 .price-feats{list-style:none; margin:22px 0 26px; padding:0; display:flex; flex-direction:column; gap:11px; flex:1;}
 .price-feats li{font-size:13.5px; color:var(--text-secondary); display:flex; gap:9px; align-items:flex-start; flex-wrap:wrap; row-gap:6px;}
 .price-feats li svg{flex:none; margin-top:2px;}
@@ -479,6 +503,26 @@ footer{border-top:1px solid var(--border-soft); padding:56px 0 32px; margin-top:
     </div>
   </div>
 
+  <div class="container">
+    <div class="stats-bar">
+      <div class="stat-item">
+        <div class="stat-num">$16B</div>
+        <div class="stat-label">Lost to fraud &amp; scams in the US in 2025</div>
+        <div class="stat-source">Federal Trade Commission, 2026 report</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">$3.5B</div>
+        <div class="stat-label">Lost to impersonation &amp; imposter scams in 2025 alone</div>
+        <div class="stat-source">Federal Trade Commission, 2026 report</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">Free</div>
+        <div class="stat-label">Every website scan on ScamGuard</div>
+        <div class="stat-source">No account required</div>
+      </div>
+    </div>
+  </div>
+
   <div class="container section-tight">
     <div class="section-head">
       <h2>What ScamGuard checks</h2>
@@ -538,10 +582,14 @@ footer{border-top:1px solid var(--border-soft); padding:56px 0 32px; margin-top:
       <h2>Simple, transparent plans</h2>
       <p>Start free. Upgrade when you need deeper reports and monitoring.</p>
     </div>
+    <div class="billing-toggle">
+      <button type="button" class="toggle-btn active" data-billing="monthly">Monthly</button>
+      <button type="button" class="toggle-btn" data-billing="annual">Annual <span class="save-badge">Save 20%</span></button>
+    </div>
     <div class="pricing-grid">
       <div class="price-card">
         <div class="price-plan">Free</div>
-        <div class="price-amount">$0<span>/month</span></div>
+        <div class="price-amount"><span class="amt">$0</span><span class="period">/month</span></div>
         <ul class="price-feats">
           <li>✓ 5 website scans per day</li>
           <li>✓ Risk score &amp; risk band</li>
@@ -553,7 +601,8 @@ footer{border-top:1px solid var(--border-soft); padding:56px 0 32px; margin-top:
       <div class="price-card popular">
         <span class="popular-tag">Most Popular</span>
         <div class="price-plan">Pro</div>
-        <div class="price-amount">$7.99<span>/month</span></div>
+        <div class="price-amount"><span class="amt" data-monthly="$7.99" data-annual="$76.70">$7.99</span><span class="period" data-monthly="/month" data-annual="/year">/month</span></div>
+        <div class="price-save">Save $19.18/year — that's like $6.39/mo</div>
         <ul class="price-feats">
           <li>✓ 100 scans / month</li>
           <li>✓ Full technical details</li>
@@ -565,7 +614,8 @@ footer{border-top:1px solid var(--border-soft); padding:56px 0 32px; margin-top:
       </div>
       <div class="price-card">
         <div class="price-plan">Business</div>
-        <div class="price-amount">$29.99<span>/month</span></div>
+        <div class="price-amount"><span class="amt" data-monthly="$29.99" data-annual="$287.90">$29.99</span><span class="period" data-monthly="/month" data-annual="/year">/month</span></div>
+        <div class="price-save">Save $71.98/year — that's like $23.99/mo</div>
         <ul class="price-feats">
           <li class="future">✓ 1,000 scans / month<span class="future-tag">Coming soon</span></li>
           <li class="future">✓ Bulk URL &amp; CSV scanning<span class="future-tag">Coming soon</span></li>
@@ -1808,6 +1858,24 @@ waitlistForm.addEventListener('submit', async (e)=>{
     waitlistSubmitBtn.disabled = false;
   }
 });
+
+/* ---------------------------- PRICING: MONTHLY / ANNUAL TOGGLE ---------------------------- */
+document.querySelectorAll('.toggle-btn[data-billing]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const billing = btn.dataset.billing;
+    document.querySelectorAll('.toggle-btn[data-billing]').forEach((b) => b.classList.toggle('active', b === btn));
+    document.querySelectorAll('.price-amount .amt[data-monthly]').forEach((el) => {
+      el.textContent = billing === 'annual' ? el.dataset.annual : el.dataset.monthly;
+    });
+    document.querySelectorAll('.price-amount .period[data-monthly]').forEach((el) => {
+      el.textContent = billing === 'annual' ? el.dataset.annual : el.dataset.monthly;
+    });
+    document.querySelectorAll('.price-save').forEach((el) => {
+      el.style.display = billing === 'annual' ? 'block' : 'none';
+    });
+  });
+});
+document.querySelectorAll('.price-save').forEach((el) => { el.style.display = 'none'; });
 
 /* =====================================================================
    EMAIL VERIFICATION LANDING — handles the ?verify=1&token=... link from
